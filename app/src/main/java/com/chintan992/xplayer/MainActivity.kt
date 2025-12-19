@@ -5,7 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -48,8 +47,9 @@ fun NavGraph(
 ) {
     NavHost(navController = navController, startDestination = "library") {
         composable("library") {
-            LibraryScreen(onVideoClick = {
-                val mediaItem = MediaItem.fromUri(it.uri)
+            LibraryScreen(onVideoClick = { videoItem ->
+                // Use MediaItem.fromUri() with content:// URI for local files
+                val mediaItem = MediaItem.fromUri(videoItem.uri)
                 player.setMediaItem(mediaItem)
                 player.prepare()
                 player.playWhenReady = true

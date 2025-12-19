@@ -3,21 +3,31 @@ package com.chintan992.xplayer
 import okhttp3.Interceptor
 import okhttp3.Response
 import java.io.IOException
-import javax.inject.Inject
+import java.util.concurrent.ConcurrentHashMap
 
-class CustomHeaderInterceptor @Inject constructor(
-    private val headerStorage: HeaderStorage
-) : Interceptor {
+class CustomHeaderInterceptor : Interceptor {
+
+    companion object {
+        private val headers = ConcurrentHashMap<String, Map<String, String>>()
+
+        fun addHeaders(host: String, headersToAdd: Map<String, String>) {
+            headers[host] = headersToAdd
+        }
+
+        fun getHeaders(host: String): Map<String, String>? {
+            return headers[host]
+        }
+    }
 
     @Throws(IOException::class)
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
         val host = request.url.host
-        val headers = headerStorage.getHeaders(host)
+        val customHeaders = getHeaders(host)
 
-        val newRequest = if (headers != null) {
+        val newRequest = if (customHeaders != null) {
             val builder = request.newBuilder()
-            for ((key, value) in headers) {
+            for ((key, value) in customHeaders) {
                 builder.addHeader(key, value)
             }
             builder.build()

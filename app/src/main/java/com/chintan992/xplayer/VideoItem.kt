@@ -7,5 +7,15 @@ data class VideoItem(
     val uri: Uri,
     val name: String,
     val duration: Long,
-    val size: Long
+    val size: Long,
+    val folderPath: String = "",
+    val folderName: String = ""
+)
+
+data class VideoFolder(
+    val path: String,
+    val name: String,
+    val videoCount: Int,
+    val totalSize: Long = 0L,
+    val thumbnailUri: Uri? = null
 )
