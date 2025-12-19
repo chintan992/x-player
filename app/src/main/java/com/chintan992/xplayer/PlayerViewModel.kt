@@ -3,6 +3,7 @@ package com.chintan992.xplayer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.C
+import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
@@ -60,7 +61,8 @@ data class PlayerUiState(
     val showBrightnessIndicator: Boolean = false,
     val showVolumeIndicator: Boolean = false,
     val isSeeking: Boolean = false,
-    val seekPosition: Long = 0L
+    val seekPosition: Long = 0L,
+    val isSpeedOverridden: Boolean = false
 )
 
 @HiltViewModel
@@ -75,6 +77,7 @@ class PlayerViewModel @Inject constructor(
     private var hideControlsJob: Job? = null
     private var positionUpdateJob: Job? = null
     private var currentVideoId: String? = null
+    private var originalSpeed: Float = 1f
 
     private val playerListener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -101,6 +104,22 @@ class PlayerViewModel @Inject constructor(
         }
 
         override fun onTracksChanged(tracks: Tracks) {
+            updateTrackInfo()
+        }
+
+        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            mediaItem?.localConfiguration?.tag?.let { tag ->
+                if (tag is String) {
+                    _uiState.value = _uiState.value.copy(videoTitle = tag)
+                }
+            }
+            // Update duration when media item changes
+            player?.let { p ->
+                _uiState.value = _uiState.value.copy(
+                    duration = p.duration.coerceAtLeast(0L),
+                    currentPosition = 0L
+                )
+            }
             updateTrackInfo()
         }
     }
@@ -208,10 +227,47 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
+    fun seekToNext() {
+        if (player?.hasNextMediaItem() == true) {
+            player?.seekToNextMediaItem()
+            showControls()
+        }
+    }
+
+    fun seekToPrevious() {
+        if (player?.hasPreviousMediaItem() == true) {
+            player?.seekToPreviousMediaItem()
+            showControls()
+        }
+    }
+
     fun setPlaybackSpeed(speed: Float) {
-        player?.setPlaybackSpeed(speed)
-        _uiState.value = _uiState.value.copy(playbackSpeed = speed)
-        showControls()
+        if (!_uiState.value.isSpeedOverridden) {
+            player?.setPlaybackSpeed(speed)
+            _uiState.value = _uiState.value.copy(playbackSpeed = speed)
+            showControls()
+        }
+    }
+
+    fun startSpeedOverride() {
+        if (!_uiState.value.isSpeedOverridden) {
+            originalSpeed = _uiState.value.playbackSpeed
+            player?.setPlaybackSpeed(2f)
+            _uiState.value = _uiState.value.copy(
+                isSpeedOverridden = true,
+                playbackSpeed = 2f
+            )
+        }
+    }
+
+    fun stopSpeedOverride() {
+        if (_uiState.value.isSpeedOverridden) {
+            player?.setPlaybackSpeed(originalSpeed)
+            _uiState.value = _uiState.value.copy(
+                isSpeedOverridden = false,
+                playbackSpeed = originalSpeed
+            )
+        }
     }
 
     fun selectAudioTrack(trackInfo: TrackInfo) {

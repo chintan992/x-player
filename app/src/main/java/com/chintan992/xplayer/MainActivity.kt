@@ -211,11 +211,34 @@ fun NavGraph(
                 currentVideoTitle = videoItem.name
                 currentVideoUri = videoItem.uri.toString()
                 
-                // Set up media item and start playback
-                val mediaItem = MediaItem.fromUri(videoItem.uri)
-                player.setMediaItem(mediaItem)
-                player.prepare()
-                player.playWhenReady = true
+                // Check if we need to prepare the player (new video or player stopped)
+                val playlist = PlaylistManager.currentPlaylist
+                val index = PlaylistManager.currentVideoIndex
+                
+                if (playlist.isNotEmpty()) {
+                    val mediaItems = playlist.map { video ->
+                        MediaItem.Builder()
+                            .setUri(video.uri)
+                            .setMediaId(video.uri.toString())
+                            .setTag(video.name) // Store title in tag
+                            .build()
+                    }
+                    
+                    player.setMediaItems(mediaItems, index, 0L)
+                    player.prepare()
+                    player.playWhenReady = true
+                } else {
+                    // Fallback to single item if playlist is empty (should ideally not happen)
+                    val mediaItem = MediaItem.Builder()
+                        .setUri(videoItem.uri)
+                        .setMediaId(videoItem.uri.toString())
+                        .setTag(videoItem.name)
+                        .build()
+                        
+                    player.setMediaItem(mediaItem)
+                    player.prepare()
+                    player.playWhenReady = true
+                }
                 
                 navController.navigate("player")
             })

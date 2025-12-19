@@ -182,17 +182,25 @@ fun LibraryScreen(onVideoClick: (VideoItem) -> Unit) {
                             modifier = Modifier.padding(paddingValues)
                         )
                     } else {
+                        val handleVideoClick: (VideoItem) -> Unit = { video ->
+                            val index = videos.indexOf(video)
+                            if (index != -1) {
+                                PlaylistManager.setPlaylist(videos, index)
+                            }
+                            onVideoClick(video)
+                        }
+
                         when (settings.layoutType) {
                             LayoutType.GRID -> VideoGrid(
                                 videos = videos,
-                                onVideoClick = onVideoClick,
+                                onVideoClick = handleVideoClick,
                                 fieldVisibility = settings.fieldVisibility,
                                 playbackPositions = playbackPositions,
                                 modifier = Modifier.padding(paddingValues)
                             )
                             LayoutType.LIST -> VideoList(
                                 videos = videos,
-                                onVideoClick = onVideoClick,
+                                onVideoClick = handleVideoClick,
                                 fieldVisibility = settings.fieldVisibility,
                                 playbackPositions = playbackPositions,
                                 modifier = Modifier.padding(paddingValues)

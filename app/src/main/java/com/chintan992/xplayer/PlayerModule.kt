@@ -36,8 +36,19 @@ object PlayerModule {
         // content://, file://, asset://, and other local URI schemes
         val dataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
         
+        // Custom LoadControl to start playback faster
+        val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
+            .setBufferDurationsMs(
+                15000, // minBufferMs
+                50000, // maxBufferMs
+                500,   // bufferForPlaybackMs (Start playing after 500ms buffered)
+                1000   // bufferForPlaybackAfterRebufferMs
+            )
+            .build()
+        
         return ExoPlayer.Builder(context)
             .setMediaSourceFactory(DefaultMediaSourceFactory(context).setDataSourceFactory(dataSourceFactory))
+            .setLoadControl(loadControl)
             .build()
     }
 }

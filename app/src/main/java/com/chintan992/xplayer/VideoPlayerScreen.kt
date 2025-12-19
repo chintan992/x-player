@@ -47,6 +47,8 @@ import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PictureInPicture
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.SlowMotionVideo
 import androidx.compose.material.icons.filled.Memory
@@ -89,6 +91,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.TimeoutCancellationException
 
 @Composable
 fun VideoPlayerScreen(
@@ -257,7 +261,18 @@ fun VideoPlayerScreen(
                         if (!uiState.isLocked) {
                             detectTapGestures(
                                 onTap = { viewModel.toggleControls() },
-                                onDoubleTap = { viewModel.seekBackward() }
+                                onDoubleTap = { viewModel.seekBackward() },
+                                onPress = {
+                                    try {
+                                        withTimeout(500) {
+                                            tryAwaitRelease()
+                                        }
+                                    } catch (e: TimeoutCancellationException) {
+                                        viewModel.startSpeedOverride()
+                                        tryAwaitRelease()
+                                        viewModel.stopSpeedOverride()
+                                    }
+                                }
                             )
                         }
                     }
@@ -282,7 +297,18 @@ fun VideoPlayerScreen(
                         if (!uiState.isLocked) {
                             detectTapGestures(
                                 onTap = { viewModel.toggleControls() },
-                                onDoubleTap = { viewModel.seekForward() }
+                                onDoubleTap = { viewModel.seekForward() },
+                                onPress = {
+                                    try {
+                                        withTimeout(500) {
+                                            tryAwaitRelease()
+                                        }
+                                    } catch (e: TimeoutCancellationException) {
+                                        viewModel.startSpeedOverride()
+                                        tryAwaitRelease()
+                                        viewModel.stopSpeedOverride()
+                                    }
+                                }
                             )
                         }
                     }
@@ -325,6 +351,36 @@ fun VideoPlayerScreen(
             )
         }
 
+        // Speed Override Indicator
+        AnimatedVisibility(
+            visible = uiState.isSpeedOverridden,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = 100.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.FastForward,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "2x Speed",
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
         // Controls overlay
         AnimatedVisibility(
             visible = uiState.controlsVisible,
@@ -341,6 +397,8 @@ fun VideoPlayerScreen(
                     onSeek = { viewModel.seekTo(it) },
                     onSeekForward = { viewModel.seekForward() },
                     onSeekBackward = { viewModel.seekBackward() },
+                    onNext = { viewModel.seekToNext() },
+                    onPrevious = { viewModel.seekToPrevious() },
                     onSpeedClick = { showSpeedDialog = true },
                     onDecoderClick = { viewModel.cycleDecoderMode() },
                     onAudioClick = { showAudioDialog = true },
@@ -467,6 +525,8 @@ private fun ControlsOverlay(
     onSeek: (Long) -> Unit,
     onSeekForward: () -> Unit,
     onSeekBackward: () -> Unit,
+    onNext: () -> Unit,
+    onPrevious: () -> Unit,
     onSpeedClick: () -> Unit,
     onDecoderClick: () -> Unit,
     onAudioClick: () -> Unit,
@@ -555,6 +615,8 @@ private fun ControlsOverlay(
                 aspectRatioMode = uiState.aspectRatioMode,
                 isLandscape = uiState.isLandscape,
                 onLockClick = onLockClick,
+                onPreviousClick = onPrevious,
+                onNextClick = onNext,
                 onAspectRatioClick = onAspectRatioClick,
                 onOrientationClick = onOrientationClick,
                 onPipClick = onPipClick
@@ -771,6 +833,8 @@ private fun BottomControls(
     aspectRatioMode: AspectRatioMode,
     isLandscape: Boolean,
     onLockClick: () -> Unit,
+    onPreviousClick: () -> Unit,
+    onNextClick: () -> Unit,
     onAspectRatioClick: () -> Unit,
     onOrientationClick: () -> Unit,
     onPipClick: () -> Unit
@@ -780,13 +844,33 @@ private fun BottomControls(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Left side - Lock button
-        IconButton(onClick = onLockClick) {
-            Icon(
-                imageVector = Icons.Default.LockOpen,
-                contentDescription = "Lock Screen",
-                tint = Color.White
-            )
+        // Left side - Lock and Navigation buttons
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onLockClick) {
+                Icon(
+                    imageVector = Icons.Default.LockOpen,
+                    contentDescription = "Lock Screen",
+                    tint = Color.White
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(8.dp))
+            
+            IconButton(onClick = onPreviousClick) {
+                Icon(
+                    imageVector = Icons.Default.SkipPrevious,
+                    contentDescription = "Previous Video",
+                    tint = Color.White
+                )
+            }
+            
+            IconButton(onClick = onNextClick) {
+                Icon(
+                    imageVector = Icons.Default.SkipNext,
+                    contentDescription = "Next Video",
+                    tint = Color.White
+                )
+            }
         }
 
         // Right side - Aspect ratio, orientation, PiP
