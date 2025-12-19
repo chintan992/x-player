@@ -49,6 +49,7 @@ import androidx.compose.material.icons.filled.PictureInPicture
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.SlowMotionVideo
+import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material.icons.filled.VolumeDown
 import androidx.compose.material.icons.filled.VolumeMute
@@ -340,6 +341,7 @@ fun VideoPlayerScreen(
                     onSeekForward = { viewModel.seekForward() },
                     onSeekBackward = { viewModel.seekBackward() },
                     onSpeedClick = { showSpeedDialog = true },
+                    onDecoderClick = { viewModel.cycleDecoderMode() },
                     onAudioClick = { showAudioDialog = true },
                     onSubtitleClick = { showSubtitleDialog = true },
                     onLockClick = { viewModel.toggleLock() },
@@ -465,6 +467,7 @@ private fun ControlsOverlay(
     onSeekForward: () -> Unit,
     onSeekBackward: () -> Unit,
     onSpeedClick: () -> Unit,
+    onDecoderClick: () -> Unit,
     onAudioClick: () -> Unit,
     onSubtitleClick: () -> Unit,
     onLockClick: () -> Unit,
@@ -508,9 +511,11 @@ private fun ControlsOverlay(
         // Control buttons row
         ControlButtonsRow(
             playbackSpeed = uiState.playbackSpeed,
+            decoderMode = uiState.decoderMode,
             hasAudioTracks = uiState.audioTracks.size > 1,
             hasSubtitles = uiState.subtitleTracks.isNotEmpty(),
             onSpeedClick = onSpeedClick,
+            onDecoderClick = onDecoderClick,
             onAudioClick = onAudioClick,
             onSubtitleClick = onSubtitleClick,
             modifier = Modifier
@@ -591,9 +596,11 @@ private fun TopBar(
 @Composable
 private fun ControlButtonsRow(
     playbackSpeed: Float,
+    decoderMode: DecoderMode,
     hasAudioTracks: Boolean,
     hasSubtitles: Boolean,
     onSpeedClick: () -> Unit,
+    onDecoderClick: () -> Unit,
     onAudioClick: () -> Unit,
     onSubtitleClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -606,6 +613,17 @@ private fun ControlButtonsRow(
             icon = Icons.Default.SlowMotionVideo,
             label = "${playbackSpeed}x",
             onClick = onSpeedClick
+        )
+
+        // Decoder mode button (HW/SW/Auto)
+        ControlButton(
+            icon = Icons.Default.Memory,
+            label = when (decoderMode) {
+                DecoderMode.HARDWARE -> "HW"
+                DecoderMode.SOFTWARE -> "SW"
+                DecoderMode.AUTO -> "Auto"
+            },
+            onClick = onDecoderClick
         )
 
         if (hasAudioTracks) {

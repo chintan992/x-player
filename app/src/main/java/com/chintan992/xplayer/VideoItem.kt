@@ -8,6 +8,7 @@ data class VideoItem(
     val name: String,
     val duration: Long,
     val size: Long,
+    val dateModified: Long = 0L,
     val folderPath: String = "",
     val folderName: String = ""
 )

@@ -5,6 +5,8 @@ import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,6 +28,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -73,6 +76,8 @@ fun LibraryScreen(onVideoClick: (VideoItem) -> Unit) {
         val selectedFolder by viewModel.selectedFolder.collectAsState()
         val videos by viewModel.videos.collectAsState()
         val folders by viewModel.folders.collectAsState()
+        val settings by viewModel.settings.collectAsState()
+        val showSettingsDialog by viewModel.showSettingsDialog.collectAsState()
 
         // Handle back press when in folder view
         BackHandler(enabled = selectedFolder != null) {
@@ -102,6 +107,13 @@ fun LibraryScreen(onVideoClick: (VideoItem) -> Unit) {
                         }
                     },
                     actions = {
+                        // Settings button
+                        IconButton(onClick = { viewModel.showSettings() }) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Settings"
+                            )
+                        }
                         if (selectedFolder == null) {
                             IconButton(onClick = { viewModel.toggleViewMode() }) {
                                 Icon(
@@ -118,8 +130,10 @@ fun LibraryScreen(onVideoClick: (VideoItem) -> Unit) {
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                        actionIconContentColor = MaterialTheme.colorScheme.onSurface,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onSurface
                     )
                 )
             }
@@ -136,26 +150,48 @@ fun LibraryScreen(onVideoClick: (VideoItem) -> Unit) {
                         FolderList(
                             folders = folders,
                             onFolderClick = { viewModel.selectFolder(it) },
+                            fieldVisibility = settings.fieldVisibility,
                             modifier = Modifier.padding(paddingValues)
                         )
                     }
                 }
                 else -> {
-                    // Show video grid (all videos or videos in selected folder)
+                    // Show videos (all videos or videos in selected folder)
                     if (videos.isEmpty()) {
                         EmptyState(
                             message = if (selectedFolder != null) "No videos in this folder" else "No videos found",
                             modifier = Modifier.padding(paddingValues)
                         )
                     } else {
-                        VideoGrid(
-                            videos = videos,
-                            onVideoClick = onVideoClick,
-                            modifier = Modifier.padding(paddingValues)
-                        )
+                        when (settings.layoutType) {
+                            LayoutType.GRID -> VideoGrid(
+                                videos = videos,
+                                onVideoClick = onVideoClick,
+                                fieldVisibility = settings.fieldVisibility,
+                                modifier = Modifier.padding(paddingValues)
+                            )
+                            LayoutType.LIST -> VideoList(
+                                videos = videos,
+                                onVideoClick = onVideoClick,
+                                fieldVisibility = settings.fieldVisibility,
+                                modifier = Modifier.padding(paddingValues)
+                            )
+                        }
                     }
                 }
             }
+        }
+
+        // Settings Dialog
+        if (showSettingsDialog) {
+            FolderViewSettingsDialog(
+                settings = settings,
+                onLayoutTypeChange = { viewModel.setLayoutType(it) },
+                onSortByChange = { viewModel.setSortBy(it) },
+                onSortOrderChange = { viewModel.setSortOrder(it) },
+                onFieldToggle = { viewModel.toggleFieldVisibility(it) },
+                onDismiss = { viewModel.hideSettings() }
+            )
         }
     } else {
         Scaffold(
@@ -181,6 +217,7 @@ fun LibraryScreen(onVideoClick: (VideoItem) -> Unit) {
 private fun FolderList(
     folders: List<VideoFolder>,
     onFolderClick: (VideoFolder) -> Unit,
+    fieldVisibility: FieldVisibility,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -188,7 +225,7 @@ private fun FolderList(
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         items(folders) { folder ->
-            FolderListItem(folder = folder, onClick = { onFolderClick(folder) })
+            FolderListItem(folder = folder, fieldVisibility = fieldVisibility, onClick = { onFolderClick(folder) })
         }
     }
 }
@@ -196,6 +233,7 @@ private fun FolderList(
 @Composable
 private fun FolderListItem(
     folder: VideoFolder,
+    fieldVisibility: FieldVisibility,
     onClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -298,6 +336,7 @@ private fun FolderListItem(
 private fun VideoGrid(
     videos: List<VideoItem>,
     onVideoClick: (VideoItem) -> Unit,
+    fieldVisibility: FieldVisibility,
     modifier: Modifier = Modifier
 ) {
     LazyVerticalGrid(
@@ -307,7 +346,24 @@ private fun VideoGrid(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(videos) { video ->
-            VideoGridItem(video = video, onClick = { onVideoClick(video) })
+            VideoGridItem(video = video, fieldVisibility = fieldVisibility, onClick = { onVideoClick(video) })
+        }
+    }
+}
+
+@Composable
+private fun VideoList(
+    videos: List<VideoItem>,
+    onVideoClick: (VideoItem) -> Unit,
+    fieldVisibility: FieldVisibility,
+    modifier: Modifier = Modifier
+) {
+    LazyColumn(
+        modifier = modifier.padding(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(videos) { video ->
+            VideoListItem(video = video, fieldVisibility = fieldVisibility, onClick = { onVideoClick(video) })
         }
     }
 }
@@ -315,6 +371,7 @@ private fun VideoGrid(
 @Composable
 private fun VideoGridItem(
     video: VideoItem,
+    fieldVisibility: FieldVisibility,
     onClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -327,38 +384,42 @@ private fun VideoGridItem(
         shape = RoundedCornerShape(12.dp)
     ) {
         Column {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(16f / 9f)
-            ) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(video.uri)
-                        .videoFrameMillis(1000)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = video.name,
+            if (fieldVisibility.thumbnail) {
+                Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
-                    contentScale = ContentScale.Crop
-                )
-                
-                // Duration badge
-                Text(
-                    text = formatDuration(video.duration),
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(6.dp)
-                        .background(
-                            color = Color.Black.copy(alpha = 0.7f),
-                            shape = RoundedCornerShape(4.dp)
+                        .fillMaxWidth()
+                        .aspectRatio(16f / 9f)
+                ) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(video.uri)
+                            .videoFrameMillis(1000)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = video.name,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                    
+                    // Duration badge
+                    if (fieldVisibility.duration) {
+                        Text(
+                            text = formatDuration(video.duration),
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(6.dp)
+                                .background(
+                                    color = Color.Black.copy(alpha = 0.7f),
+                                    shape = RoundedCornerShape(4.dp)
+                                )
+                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelSmall
                         )
-                        .padding(horizontal = 6.dp, vertical = 2.dp),
-                    color = Color.White,
-                    style = MaterialTheme.typography.labelSmall
-                )
+                    }
+                }
             }
             
             Column(modifier = Modifier.padding(8.dp)) {
@@ -368,11 +429,115 @@ private fun VideoGridItem(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
+                if (fieldVisibility.size) {
+                    Text(
+                        text = formatFileSize(video.size),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun VideoListItem(
+    video: VideoItem,
+    fieldVisibility: FieldVisibility,
+    onClick: () -> Unit
+) {
+    val context = LocalContext.current
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Thumbnail
+            if (fieldVisibility.thumbnail) {
+                Box(
+                    modifier = Modifier
+                        .size(80.dp, 45.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                ) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(video.uri)
+                            .videoFrameMillis(1000)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = video.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                    
+                    // Duration badge on thumbnail
+                    if (fieldVisibility.duration) {
+                        Text(
+                            text = formatDuration(video.duration),
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(2.dp)
+                                .background(
+                                    color = Color.Black.copy(alpha = 0.7f),
+                                    shape = RoundedCornerShape(2.dp)
+                                )
+                                .padding(horizontal = 4.dp, vertical = 1.dp),
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.width(12.dp))
+            }
+            
+            // Video info
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = formatFileSize(video.size),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = video.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
+                
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (fieldVisibility.size) {
+                        Text(
+                            text = formatFileSize(video.size),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    if (fieldVisibility.duration && !fieldVisibility.thumbnail) {
+                        Text(
+                            text = formatDuration(video.duration),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                
+                if (fieldVisibility.path) {
+                    Text(
+                        text = video.folderPath,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }
@@ -447,5 +612,113 @@ private fun formatFileSize(bytes: Long): String {
         bytes >= 1_000_000 -> String.format("%.1f MB", bytes / 1_000_000.0)
         bytes >= 1_000 -> String.format("%.1f KB", bytes / 1_000.0)
         else -> "$bytes B"
+    }
+}
+
+@Composable
+private fun FolderViewSettingsDialog(
+    settings: FolderViewSettings,
+    onLayoutTypeChange: (LayoutType) -> Unit,
+    onSortByChange: (SortBy) -> Unit,
+    onSortOrderChange: (SortOrder) -> Unit,
+    onFieldToggle: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("View Settings") },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Layout section
+                Text("Layout", style = MaterialTheme.typography.titleSmall)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    LayoutType.entries.forEach { type ->
+                        androidx.compose.material3.FilterChip(
+                            selected = settings.layoutType == type,
+                            onClick = { onLayoutTypeChange(type) },
+                            label = { Text(type.name) }
+                        )
+                    }
+                }
+
+                // Sort section
+                Text("Sort By", style = MaterialTheme.typography.titleSmall)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    SortBy.entries.forEach { sort ->
+                        androidx.compose.material3.FilterChip(
+                            selected = settings.sortBy == sort,
+                            onClick = { onSortByChange(sort) },
+                            label = { Text(sort.displayName) }
+                        )
+                    }
+                }
+
+                // Sort order
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    androidx.compose.material3.FilterChip(
+                        selected = settings.sortOrder == SortOrder.ASCENDING,
+                        onClick = { onSortOrderChange(SortOrder.ASCENDING) },
+                        label = { Text("↑ Oldest") }
+                    )
+                    androidx.compose.material3.FilterChip(
+                        selected = settings.sortOrder == SortOrder.DESCENDING,
+                        onClick = { onSortOrderChange(SortOrder.DESCENDING) },
+                        label = { Text("↓ Newest") }
+                    )
+                }
+
+                // Fields section
+                Text("Show Fields", style = MaterialTheme.typography.titleSmall)
+                Column {
+                    SettingsCheckbox("Thumbnail", settings.fieldVisibility.thumbnail) { onFieldToggle("thumbnail") }
+                    SettingsCheckbox("Duration", settings.fieldVisibility.duration) { onFieldToggle("duration") }
+                    SettingsCheckbox("Size", settings.fieldVisibility.size) { onFieldToggle("size") }
+                    SettingsCheckbox("Path", settings.fieldVisibility.path) { onFieldToggle("path") }
+                    SettingsCheckbox("Date", settings.fieldVisibility.date) { onFieldToggle("date") }
+                    SettingsCheckbox("Extension", settings.fieldVisibility.fileExtension) { onFieldToggle("fileExtension") }
+                }
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) {
+                Text("Done")
+            }
+        }
+    )
+}
+
+@Composable
+private fun SettingsCheckbox(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onCheckedChange)
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        androidx.compose.material3.Checkbox(
+            checked = checked,
+            onCheckedChange = { onCheckedChange() }
+        )
+        Text(
+            text = label,
+            modifier = Modifier.padding(start = 8.dp)
+        )
     }
 }

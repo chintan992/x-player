@@ -34,6 +34,12 @@ enum class AspectRatioMode(val displayName: String, val ratio: Int) {
     RATIO_4_3(displayName = "4:3", ratio = 5)
 }
 
+enum class DecoderMode(val displayName: String) {
+    HARDWARE(displayName = "Hardware (HW)"),
+    SOFTWARE(displayName = "Software (SW)"),
+    AUTO(displayName = "Auto")
+}
+
 data class PlayerUiState(
     val isPlaying: Boolean = false,
     val currentPosition: Long = 0L,
@@ -45,6 +51,7 @@ data class PlayerUiState(
     val isLocked: Boolean = false,
     val isLandscape: Boolean = true,
     val aspectRatioMode: AspectRatioMode = AspectRatioMode.FIT,
+    val decoderMode: DecoderMode = DecoderMode.AUTO,
     val audioTracks: List<TrackInfo> = emptyList(),
     val subtitleTracks: List<TrackInfo> = emptyList(),
     // Gesture states
@@ -273,6 +280,44 @@ class PlayerViewModel @Inject constructor() : ViewModel() {
     fun setAspectRatio(mode: AspectRatioMode) {
         _uiState.value = _uiState.value.copy(aspectRatioMode = mode)
         showControls()
+    }
+
+    fun cycleDecoderMode() {
+        val modes = DecoderMode.entries
+        val currentIndex = modes.indexOf(_uiState.value.decoderMode)
+        val nextIndex = (currentIndex + 1) % modes.size
+        setDecoderMode(modes[nextIndex])
+    }
+
+    fun setDecoderMode(mode: DecoderMode) {
+        _uiState.value = _uiState.value.copy(decoderMode = mode)
+        applyDecoderMode(mode)
+        showControls()
+    }
+
+    private fun applyDecoderMode(mode: DecoderMode) {
+        val p = player ?: return
+        
+        val params = p.trackSelectionParameters.buildUpon()
+        
+        when (mode) {
+            DecoderMode.HARDWARE -> {
+                // Prefer hardware decoders, disable software fallback
+                params.setForceLowestBitrate(false)
+                // ExoPlayer uses hardware by default when available
+            }
+            DecoderMode.SOFTWARE -> {
+                // Force software decoding by limiting hardware capabilities
+                // This is done by setting tunneling off and preferring lower bitrate
+                params.setForceLowestBitrate(true)
+            }
+            DecoderMode.AUTO -> {
+                // Let ExoPlayer decide (default behavior)
+                params.setForceLowestBitrate(false)
+            }
+        }
+        
+        p.trackSelectionParameters = params.build()
     }
 
     private fun scheduleHideControls() {

@@ -33,6 +33,7 @@ class LocalMediaRepository @Inject constructor(
             MediaStore.Video.Media.DISPLAY_NAME,
             MediaStore.Video.Media.DURATION,
             MediaStore.Video.Media.SIZE,
+            MediaStore.Video.Media.DATE_MODIFIED,
             MediaStore.Video.Media.DATA,
             MediaStore.Video.Media.BUCKET_DISPLAY_NAME
         )
@@ -50,6 +51,7 @@ class LocalMediaRepository @Inject constructor(
             val nameColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
             val durationColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
             val sizeColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
+            val dateModifiedColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_MODIFIED)
             val dataColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DATA)
             val bucketColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.BUCKET_DISPLAY_NAME)
 
@@ -58,6 +60,7 @@ class LocalMediaRepository @Inject constructor(
                 val name = it.getString(nameColumn) ?: "Unknown"
                 val duration = it.getLong(durationColumn)
                 val size = it.getLong(sizeColumn)
+                val dateModified = it.getLong(dateModifiedColumn)
                 val data = it.getString(dataColumn) ?: ""
                 val folderName = it.getString(bucketColumn) ?: "Unknown"
                 val uri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
@@ -65,7 +68,7 @@ class LocalMediaRepository @Inject constructor(
                 // Extract folder path from full file path
                 val folderPath = data.substringBeforeLast("/", "")
 
-                videoList.add(VideoItem(id, uri, name, duration, size, folderPath, folderName))
+                videoList.add(VideoItem(id, uri, name, duration, size, dateModified, folderPath, folderName))
             }
         }
 
@@ -81,6 +84,7 @@ class LocalMediaRepository @Inject constructor(
             MediaStore.Video.Media.DISPLAY_NAME,
             MediaStore.Video.Media.DURATION,
             MediaStore.Video.Media.SIZE,
+            MediaStore.Video.Media.DATE_MODIFIED,
             MediaStore.Video.Media.DATA,
             MediaStore.Video.Media.BUCKET_DISPLAY_NAME
         )
@@ -98,6 +102,7 @@ class LocalMediaRepository @Inject constructor(
             val nameColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
             val durationColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
             val sizeColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
+            val dateModifiedColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_MODIFIED)
             val dataColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DATA)
             val bucketColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.BUCKET_DISPLAY_NAME)
 
@@ -106,12 +111,13 @@ class LocalMediaRepository @Inject constructor(
                 val name = it.getString(nameColumn) ?: "Unknown"
                 val duration = it.getLong(durationColumn)
                 val size = it.getLong(sizeColumn)
+                val dateModified = it.getLong(dateModifiedColumn)
                 val data = it.getString(dataColumn) ?: ""
                 val folderName = it.getString(bucketColumn) ?: "Unknown"
                 val uri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
                 val folderPath = data.substringBeforeLast("/", "")
 
-                val video = VideoItem(id, uri, name, duration, size, folderPath, folderName)
+                val video = VideoItem(id, uri, name, duration, size, dateModified, folderPath, folderName)
                 folderMap.getOrPut(folderPath) { mutableListOf() }.add(video)
             }
         }
@@ -137,6 +143,7 @@ class LocalMediaRepository @Inject constructor(
             MediaStore.Video.Media.DISPLAY_NAME,
             MediaStore.Video.Media.DURATION,
             MediaStore.Video.Media.SIZE,
+            MediaStore.Video.Media.DATE_MODIFIED,
             MediaStore.Video.Media.DATA,
             MediaStore.Video.Media.BUCKET_DISPLAY_NAME
         )
@@ -158,6 +165,7 @@ class LocalMediaRepository @Inject constructor(
             val nameColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
             val durationColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
             val sizeColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
+            val dateModifiedColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_MODIFIED)
             val dataColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.DATA)
             val bucketColumn = it.getColumnIndexOrThrow(MediaStore.Video.Media.BUCKET_DISPLAY_NAME)
 
@@ -166,12 +174,13 @@ class LocalMediaRepository @Inject constructor(
                 val name = it.getString(nameColumn) ?: "Unknown"
                 val duration = it.getLong(durationColumn)
                 val size = it.getLong(sizeColumn)
+                val dateModified = it.getLong(dateModifiedColumn)
                 val data = it.getString(dataColumn) ?: ""
                 val folderName = it.getString(bucketColumn) ?: "Unknown"
                 val uri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
                 val videoFolderPath = data.substringBeforeLast("/", "")
 
-                videoList.add(VideoItem(id, uri, name, duration, size, videoFolderPath, folderName))
+                videoList.add(VideoItem(id, uri, name, duration, size, dateModified, videoFolderPath, folderName))
             }
         }
 
