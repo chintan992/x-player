@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 enum class ViewMode {
@@ -54,7 +55,8 @@ data class FolderViewSettings(
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
-    private val repository: LocalMediaRepository
+    private val repository: LocalMediaRepository,
+    private val playbackPositionManager: PlaybackPositionManager
 ) : ViewModel() {
 
     private val _viewMode = MutableStateFlow(ViewMode.FOLDERS)
@@ -68,6 +70,19 @@ class LibraryViewModel @Inject constructor(
 
     private val _showSettingsDialog = MutableStateFlow(false)
     val showSettingsDialog: StateFlow<Boolean> = _showSettingsDialog.asStateFlow()
+
+    private val _playbackPositions = MutableStateFlow<Map<String, Pair<Long, Long>>>(emptyMap())
+    val playbackPositions: StateFlow<Map<String, Pair<Long, Long>>> = _playbackPositions.asStateFlow()
+
+    init {
+        refreshPlaybackPositions()
+    }
+
+    fun refreshPlaybackPositions() {
+        viewModelScope.launch {
+            _playbackPositions.value = playbackPositionManager.getAllPositions()
+        }
+    }
 
     // Raw videos from repository
     private val rawVideos = _selectedFolder.flatMapLatest { folder ->

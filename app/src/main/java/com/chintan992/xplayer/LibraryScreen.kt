@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -59,6 +60,9 @@ import coil.request.videoFrameMillis
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.platform.LocalLifecycleOwner
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -78,6 +82,21 @@ fun LibraryScreen(onVideoClick: (VideoItem) -> Unit) {
         val folders by viewModel.folders.collectAsState()
         val settings by viewModel.settings.collectAsState()
         val showSettingsDialog by viewModel.showSettingsDialog.collectAsState()
+        val playbackPositions by viewModel.playbackPositions.collectAsState()
+        val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+
+        // Refresh playback positions when screen resumes
+        androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+            val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                    viewModel.refreshPlaybackPositions()
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose {
+                lifecycleOwner.lifecycle.removeObserver(observer)
+            }
+        }
 
         // Handle back press when in folder view
         BackHandler(enabled = selectedFolder != null) {
@@ -168,12 +187,14 @@ fun LibraryScreen(onVideoClick: (VideoItem) -> Unit) {
                                 videos = videos,
                                 onVideoClick = onVideoClick,
                                 fieldVisibility = settings.fieldVisibility,
+                                playbackPositions = playbackPositions,
                                 modifier = Modifier.padding(paddingValues)
                             )
                             LayoutType.LIST -> VideoList(
                                 videos = videos,
                                 onVideoClick = onVideoClick,
                                 fieldVisibility = settings.fieldVisibility,
+                                playbackPositions = playbackPositions,
                                 modifier = Modifier.padding(paddingValues)
                             )
                         }
@@ -337,6 +358,7 @@ private fun VideoGrid(
     videos: List<VideoItem>,
     onVideoClick: (VideoItem) -> Unit,
     fieldVisibility: FieldVisibility,
+    playbackPositions: Map<String, Pair<Long, Long>>,
     modifier: Modifier = Modifier
 ) {
     LazyVerticalGrid(
@@ -346,7 +368,13 @@ private fun VideoGrid(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(videos) { video ->
-            VideoGridItem(video = video, fieldVisibility = fieldVisibility, onClick = { onVideoClick(video) })
+            val positionInfo = playbackPositions[video.uri.toString()]
+            VideoGridItem(
+                video = video,
+                fieldVisibility = fieldVisibility,
+                playbackPosition = positionInfo,
+                onClick = { onVideoClick(video) }
+            )
         }
     }
 }
@@ -356,6 +384,7 @@ private fun VideoList(
     videos: List<VideoItem>,
     onVideoClick: (VideoItem) -> Unit,
     fieldVisibility: FieldVisibility,
+    playbackPositions: Map<String, Pair<Long, Long>>,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -363,7 +392,13 @@ private fun VideoList(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(videos) { video ->
-            VideoListItem(video = video, fieldVisibility = fieldVisibility, onClick = { onVideoClick(video) })
+            val positionInfo = playbackPositions[video.uri.toString()]
+            VideoListItem(
+                video = video,
+                fieldVisibility = fieldVisibility,
+                playbackPosition = positionInfo,
+                onClick = { onVideoClick(video) }
+            )
         }
     }
 }
@@ -372,6 +407,7 @@ private fun VideoList(
 private fun VideoGridItem(
     video: VideoItem,
     fieldVisibility: FieldVisibility,
+    playbackPosition: Pair<Long, Long>?,
     onClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -419,6 +455,27 @@ private fun VideoGridItem(
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
+                    
+                    // Progress indicator
+                    playbackPosition?.let { (pos, _) ->
+                        if (pos > 0) {
+                            val progress = pos.toFloat() / video.duration.coerceAtLeast(1)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(3.dp)
+                                    .align(Alignment.BottomStart)
+                                    .background(Color.White.copy(alpha = 0.3f))
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(progress)
+                                        .fillMaxHeight()
+                                        .background(MaterialTheme.colorScheme.primary)
+                                )
+                            }
+                        }
+                    }
                 }
             }
             
@@ -445,6 +502,7 @@ private fun VideoGridItem(
 private fun VideoListItem(
     video: VideoItem,
     fieldVisibility: FieldVisibility,
+    playbackPosition: Pair<Long, Long>?,
     onClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -495,6 +553,27 @@ private fun VideoListItem(
                             color = Color.White,
                             style = MaterialTheme.typography.labelSmall
                         )
+                    }
+                    
+                    // Progress indicator
+                    playbackPosition?.let { (pos, _) ->
+                        if (pos > 0) {
+                            val progress = pos.toFloat() / video.duration.coerceAtLeast(1)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(2.dp)
+                                    .align(Alignment.BottomStart)
+                                    .background(Color.White.copy(alpha = 0.3f))
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(progress)
+                                        .fillMaxHeight()
+                                        .background(MaterialTheme.colorScheme.primary)
+                                )
+                            }
+                        }
                     }
                 }
                 

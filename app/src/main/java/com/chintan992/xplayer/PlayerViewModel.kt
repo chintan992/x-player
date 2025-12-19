@@ -64,7 +64,9 @@ data class PlayerUiState(
 )
 
 @HiltViewModel
-class PlayerViewModel @Inject constructor() : ViewModel() {
+class PlayerViewModel @Inject constructor(
+    private val playbackPositionManager: PlaybackPositionManager
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlayerUiState())
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
@@ -72,6 +74,7 @@ class PlayerViewModel @Inject constructor() : ViewModel() {
     private var player: ExoPlayer? = null
     private var hideControlsJob: Job? = null
     private var positionUpdateJob: Job? = null
+    private var currentVideoId: String? = null
 
     private val playerListener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -81,6 +84,8 @@ class PlayerViewModel @Inject constructor() : ViewModel() {
                 scheduleHideControls()
             } else {
                 stopPositionUpdates()
+                // Save position when paused
+                saveCurrentPosition()
             }
         }
 
@@ -100,8 +105,9 @@ class PlayerViewModel @Inject constructor() : ViewModel() {
         }
     }
 
-    fun setPlayer(exoPlayer: ExoPlayer, videoTitle: String) {
+    fun setPlayer(exoPlayer: ExoPlayer, videoTitle: String, videoId: String? = null) {
         player = exoPlayer
+        currentVideoId = videoId
         exoPlayer.addListener(playerListener)
         _uiState.value = _uiState.value.copy(
             videoTitle = videoTitle,
@@ -112,6 +118,28 @@ class PlayerViewModel @Inject constructor() : ViewModel() {
         updateTrackInfo()
         if (exoPlayer.isPlaying) {
             startPositionUpdates()
+        }
+        
+        // Restore saved position if available
+        videoId?.let { id ->
+            viewModelScope.launch {
+                val savedPosition = playbackPositionManager.getPosition(id)
+                if (savedPosition > 0 && savedPosition < exoPlayer.duration) {
+                    exoPlayer.seekTo(savedPosition)
+                    _uiState.value = _uiState.value.copy(currentPosition = savedPosition)
+                }
+            }
+        }
+    }
+    
+    private fun saveCurrentPosition() {
+        val p = player ?: return
+        val id = currentVideoId ?: return
+        val position = p.currentPosition
+        val duration = p.duration
+        
+        viewModelScope.launch {
+            playbackPositionManager.savePosition(id, position, duration)
         }
     }
 

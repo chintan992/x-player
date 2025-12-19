@@ -202,12 +202,14 @@ fun NavGraph(
 ) {
     // Store current video info for player screen
     var currentVideoTitle by remember { mutableStateOf("") }
+    var currentVideoUri by remember { mutableStateOf<String?>(null) }
 
     NavHost(navController = navController, startDestination = "library") {
         composable("library") {
             LibraryScreen(onVideoClick = { videoItem ->
-                // Store video title for player screen
+                // Store video info for player screen
                 currentVideoTitle = videoItem.name
+                currentVideoUri = videoItem.uri.toString()
                 
                 // Set up media item and start playback
                 val mediaItem = MediaItem.fromUri(videoItem.uri)
@@ -222,6 +224,7 @@ fun NavGraph(
             VideoPlayerScreen(
                 player = player,
                 videoTitle = currentVideoTitle,
+                videoUri = currentVideoUri,
                 onBackPressed = {
                     player.pause()
                     navController.popBackStack()

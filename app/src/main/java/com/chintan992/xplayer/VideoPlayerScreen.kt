@@ -94,6 +94,7 @@ import kotlinx.coroutines.delay
 fun VideoPlayerScreen(
     player: ExoPlayer,
     videoTitle: String = "Video",
+    videoUri: String? = null,
     onBackPressed: () -> Unit = {},
     onEnterPip: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -110,7 +111,7 @@ fun VideoPlayerScreen(
 
     // Initialize ViewModel with player
     LaunchedEffect(player) {
-        viewModel.setPlayer(player, videoTitle)
+        viewModel.setPlayer(player, videoTitle, videoUri)
     }
 
     // Handle back press
