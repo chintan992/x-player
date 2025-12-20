@@ -1,5 +1,11 @@
 package com.chintan992.xplayer
 
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import com.chintan992.xplayer.ui.theme.BrandAccent
 
 import android.app.Activity
@@ -244,7 +250,8 @@ fun VideoPlayerScreen(
                 PlayerView(ctx).apply {
                     this.player = player
                     useController = false
-                    setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
+                    keepScreenOn = true
+                    setShowBuffering(androidx.media3.ui.PlayerView.SHOW_BUFFERING_NEVER)
                 }
             },
             update = { playerView ->
@@ -258,6 +265,19 @@ fun VideoPlayerScreen(
                 }
             }
         )
+
+        // Loading Indicator
+        if (uiState.isBuffering || uiState.isResolving) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.3f))
+                    .pointerInput(Unit) {}, // Block clicks while loading
+                contentAlignment = Alignment.Center
+            ) {
+                CustomLoadingIndicator()
+            }
+        }
 
         // Gesture detection overlay
         // We use a single surface to handle all gestures, enabling center double-tap and unified drag logic
@@ -1158,5 +1178,54 @@ private fun formatTime(ms: Long): String {
         String.format("%d:%02d:%02d", hours, minutes, seconds)
     } else {
         String.format("%d:%02d", minutes, seconds)
+    }
+}
+@Composable
+private fun CustomLoadingIndicator(
+    modifier: Modifier = Modifier,
+    color: Color = BrandAccent
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "loading")
+
+    val angle by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing)
+        ),
+        label = "angle"
+    )
+
+    val pulse by infiniteTransition.animateFloat(
+        initialValue = 0.8f,
+        targetValue = 1.2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse"
+    )
+
+    Canvas(modifier = modifier.size(64.dp)) {
+        // Rotating Arc
+        drawArc(
+            color = color,
+            startAngle = angle,
+            sweepAngle = 270f,
+            useCenter = false,
+            style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
+        )
+        
+        // Pulsing Dot
+        drawCircle(
+            color = color.copy(alpha = 0.5f),
+            radius = 8.dp.toPx() * pulse,
+            center = center
+        )
+        drawCircle(
+            color = color,
+            radius = 6.dp.toPx(),
+            center = center
+        )
     }
 }

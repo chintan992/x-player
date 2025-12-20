@@ -64,7 +64,8 @@ data class PlayerUiState(
     val seekPosition: Long = 0L,
     val isSpeedOverridden: Boolean = false,
     val isResolving: Boolean = false,
-    val resolvingError: String? = null
+    val resolvingError: String? = null,
+    val isBuffering: Boolean = false
 )
 
 @HiltViewModel
@@ -96,6 +97,10 @@ class PlayerViewModel @Inject constructor(
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
+            _uiState.value = _uiState.value.copy(
+                isBuffering = playbackState == Player.STATE_BUFFERING
+            )
+
             if (playbackState == Player.STATE_READY) {
                 player?.let { p ->
                     _uiState.value = _uiState.value.copy(
