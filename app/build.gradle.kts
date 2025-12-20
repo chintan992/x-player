@@ -65,6 +65,7 @@ dependencies {
     implementation(libs.coil.video)
     implementation(libs.accompanist.permissions)
     implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     implementation(libs.okhttp)
     implementation(libs.androidx.datastore.preferences)
     testImplementation(libs.junit)

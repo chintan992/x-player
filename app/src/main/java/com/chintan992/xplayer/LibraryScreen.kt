@@ -1,7 +1,5 @@
 package com.chintan992.xplayer
 
-import com.chintan992.xplayer.ui.theme.BrandAccent
-
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.BackHandler
@@ -30,6 +28,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -49,30 +48,31 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.request.videoFrameMillis
+import com.chintan992.xplayer.ui.theme.BrandAccent
+import com.chintan992.xplayer.ui.theme.Dimens
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.ui.draw.clip
-import android.os.Environment
-import android.content.Intent
-import android.provider.Settings
-import com.google.accompanist.permissions.rememberPermissionState
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.text.font.FontWeight
+import com.google.accompanist.permissions.rememberPermissionState
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -118,11 +118,12 @@ fun LibraryScreen(onVideoClick: (VideoItem) -> Unit) {
                 TopAppBar(
                     title = {
                         Text(
-                            when {
+                            text = when {
                                 selectedFolder != null -> selectedFolder!!.name
                                 viewMode == ViewMode.FOLDERS -> "Folders"
                                 else -> "All Videos"
-                            }
+                            },
+                            fontWeight = FontWeight.SemiBold
                         )
                     },
                     navigationIcon = {
@@ -159,13 +160,15 @@ fun LibraryScreen(onVideoClick: (VideoItem) -> Unit) {
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        titleContentColor = MaterialTheme.colorScheme.onSurface,
-                        actionIconContentColor = MaterialTheme.colorScheme.onSurface,
-                        navigationIconContentColor = MaterialTheme.colorScheme.onSurface
+                        // Use Surface color for a cleaner, unified look (Cinema feel)
+                        containerColor = MaterialTheme.colorScheme.background,
+                        titleContentColor = MaterialTheme.colorScheme.onBackground,
+                        actionIconContentColor = MaterialTheme.colorScheme.onBackground,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onBackground
                     )
                 )
-            }
+            },
+            containerColor = MaterialTheme.colorScheme.background // Ensure dark background usage
         ) { paddingValues ->
             when {
                 viewMode == ViewMode.FOLDERS && selectedFolder == null -> {
@@ -239,8 +242,8 @@ fun LibraryScreen(onVideoClick: (VideoItem) -> Unit) {
                 TopAppBar(
                     title = { Text("Video Library") },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        containerColor = MaterialTheme.colorScheme.background,
+                        titleContentColor = MaterialTheme.colorScheme.onBackground
                     )
                 )
             }
@@ -261,8 +264,8 @@ private fun FolderList(
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
-        modifier = modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        modifier = modifier.padding(horizontal = Dimens.SpacingMedium, vertical = Dimens.SpacingSmall),
+        verticalArrangement = Arrangement.spacedBy(Dimens.SpacingMedium)
     ) {
         items(folders) { folder ->
             FolderListItem(folder = folder, fieldVisibility = fieldVisibility, onClick = { onFolderClick(folder) })
@@ -278,24 +281,25 @@ private fun FolderListItem(
 ) {
     val context = LocalContext.current
     
+    // Transparent Card for cleaner "Cinema" List look
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(8.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        shape = RoundedCornerShape(Dimens.CornerMedium)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(Dimens.SpacingMedium),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Folder thumbnail
             Box(
                 modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                    .size(Dimens.FolderThumbnailSize)
+                    .clip(RoundedCornerShape(Dimens.CornerMedium))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
@@ -314,28 +318,30 @@ private fun FolderListItem(
                     Icon(
                         imageVector = Icons.Outlined.Folder,
                         contentDescription = null,
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier.size(Dimens.IconLarge),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
             
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(Dimens.SpacingLarge))
             
             // Folder info
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = folder.name,
                     style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(Dimens.SpacingSmall))
                 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMedium)
                 ) {
                     Text(
                         text = "${folder.videoCount} video${if (folder.videoCount != 1) "s" else ""}",
@@ -344,24 +350,34 @@ private fun FolderListItem(
                     )
                     
                     // Size badge
-                    Text(
-                        text = formatFileSize(folder.totalSize),
-                        modifier = Modifier
-                            .background(
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = RoundedCornerShape(4.dp)
-                            )
-                            .padding(horizontal = 6.dp, vertical = 2.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
+                    if (folder.totalSize > 0) {
+                        Text(
+                            text = formatFileSize(folder.totalSize),
+                            modifier = Modifier
+                                .background(
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    shape = RoundedCornerShape(Dimens.CornerSmall)
+                                )
+                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
-                
-                Spacer(modifier = Modifier.height(2.dp))
-                
-
             }
+            
+            // Chevron for affordance
+             Icon(
+                imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            )
         }
+        // Divider
+        androidx.compose.material3.HorizontalDivider(
+            modifier = Modifier.padding(start = 84.dp), // Intentional indent
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)
+        )
     }
 }
 
@@ -375,9 +391,9 @@ private fun VideoGrid(
 ) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
-        modifier = modifier.padding(8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = modifier.padding(Dimens.SpacingMedium),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMedium),
+        verticalArrangement = Arrangement.spacedBy(Dimens.SpacingMedium)
     ) {
         items(videos) { video ->
             val positionInfo = playbackPositions[video.uri.toString()]
@@ -400,8 +416,8 @@ private fun VideoList(
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
-        modifier = modifier.padding(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = modifier.padding(Dimens.SpacingMedium),
+        verticalArrangement = Arrangement.spacedBy(Dimens.SpacingMedium)
     ) {
         items(videos) { video ->
             val positionInfo = playbackPositions[video.uri.toString()]
@@ -428,8 +444,9 @@ private fun VideoGridItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(12.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.CardElevation),
+        shape = RoundedCornerShape(Dimens.CornerLarge),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column {
             if (fieldVisibility.thumbnail) {
@@ -446,9 +463,20 @@ private fun VideoGridItem(
                             .build(),
                         contentDescription = video.name,
                         modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                            .fillMaxSize(),
                         contentScale = ContentScale.Crop
+                    )
+                    
+                    // Gradient Overlay for text readability
+                     Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
+                                    startY = 100f
+                                )
+                            )
                     )
                     
                     // Duration badge
@@ -457,14 +485,10 @@ private fun VideoGridItem(
                             text = formatDuration(video.duration),
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)
-                                .padding(6.dp)
-                                .background(
-                                    color = Color.Black.copy(alpha = 0.7f),
-                                    shape = RoundedCornerShape(4.dp)
-                                )
-                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                                .padding(Dimens.SpacingSmall),
                             color = Color.White,
-                            style = MaterialTheme.typography.labelSmall
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                     
@@ -475,7 +499,7 @@ private fun VideoGridItem(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(3.dp)
+                                    .height(Dimens.ProgressBarHeight)
                                     .align(Alignment.BottomStart)
                                     .background(Color.White.copy(alpha = 0.3f))
                             ) {
@@ -491,17 +515,19 @@ private fun VideoGridItem(
                 }
             }
             
-            Column(modifier = Modifier.padding(8.dp)) {
+            Column(modifier = Modifier.padding(Dimens.SpacingMedium)) {
                 Text(
                     text = video.name,
                     style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
                 if (fieldVisibility.size) {
+                    Spacer(modifier = Modifier.height(Dimens.SpacingSmall))
                     Text(
                         text = formatFileSize(video.size),
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -519,110 +545,115 @@ private fun VideoListItem(
 ) {
     val context = LocalContext.current
     
-    Card(
+    // Cleaner List Item
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(8.dp)
+            .clip(RoundedCornerShape(Dimens.CornerMedium))
+            .clickable(onClick = onClick)
+            .padding(Dimens.SpacingMedium), // Internal padding
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Thumbnail
-            if (fieldVisibility.thumbnail) {
-                Box(
-                    modifier = Modifier
-                        .size(80.dp, 45.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                ) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(context)
-                            .data(video.uri)
-                            .videoFrameMillis(1000)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = video.name,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+        // Thumbnail
+        if (fieldVisibility.thumbnail) {
+            Box(
+                modifier = Modifier
+                    .size(width = Dimens.VideoListItemTitleWidth, height = Dimens.VideoListItemThumbnailHeight)
+                    .clip(RoundedCornerShape(Dimens.CornerSmall))
+            ) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(video.uri)
+                        .videoFrameMillis(1000)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = video.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+                
+                // Duration badge on thumbnail
+                if (fieldVisibility.duration) {
+                     Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.3f))
                     )
-                    
-                    // Duration badge on thumbnail
-                    if (fieldVisibility.duration) {
-                        Text(
-                            text = formatDuration(video.duration),
+                    Text(
+                        text = formatDuration(video.duration),
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(2.dp),
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 10.sp
+                    )
+                }
+                
+                // Progress indicator
+                playbackPosition?.let { (pos, _) ->
+                    if (pos > 0) {
+                        val progress = pos.toFloat() / video.duration.coerceAtLeast(1)
+                        Box(
                             modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .padding(2.dp)
-                                .background(
-                                    color = Color.Black.copy(alpha = 0.7f),
-                                    shape = RoundedCornerShape(2.dp)
-                                )
-                                .padding(horizontal = 4.dp, vertical = 1.dp),
-                            color = Color.White,
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    }
-                    
-                    // Progress indicator
-                    playbackPosition?.let { (pos, _) ->
-                        if (pos > 0) {
-                            val progress = pos.toFloat() / video.duration.coerceAtLeast(1)
+                                .fillMaxWidth()
+                                .height(Dimens.ProgressBarHeightSmall)
+                                .align(Alignment.BottomStart)
+                                .background(Color.White.copy(alpha = 0.3f))
+                        ) {
                             Box(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(2.dp)
-                                    .align(Alignment.BottomStart)
-                                    .background(Color.White.copy(alpha = 0.3f))
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth(progress)
-                                        .fillMaxHeight()
-                                        .background(BrandAccent)
-                                )
-                            }
+                                    .fillMaxWidth(progress)
+                                    .fillMaxHeight()
+                                    .background(BrandAccent)
+                            )
                         }
                     }
                 }
-                
-                Spacer(modifier = Modifier.width(12.dp))
             }
             
-            // Video info
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = video.name,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (fieldVisibility.size) {
-                        Text(
-                            text = formatFileSize(video.size),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    if (fieldVisibility.duration && !fieldVisibility.thumbnail) {
-                        Text(
-                            text = formatDuration(video.duration),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+            Spacer(modifier = Modifier.width(Dimens.SpacingLarge))
+        }
+        
+        // Video info
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = video.name,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Normal,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            
+            Spacer(modifier = Modifier.height(Dimens.SpacingSmall))
+            
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMedium)
+            ) {
+                if (fieldVisibility.size) {
+                    Text(
+                        text = formatFileSize(video.size),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-                
-
+                if (fieldVisibility.duration && !fieldVisibility.thumbnail) {
+                    Text(
+                        text = formatDuration(video.duration),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
+        
+        // More options icon placeholder
+         Icon(
+            imageVector = Icons.Default.MoreVert,
+            contentDescription = "More",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(Dimens.IconMedium)
+        )
     }
 }
 
@@ -636,6 +667,13 @@ private fun EmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        Icon(
+            imageVector = Icons.Outlined.VideoLibrary, // Engaging icon
+            contentDescription = null,
+            modifier = Modifier.size(64.dp),
+            tint = MaterialTheme.colorScheme.surfaceVariant
+        )
+        Spacer(modifier = Modifier.height(Dimens.SpacingMedium))
         Text(
             text = message,
             style = MaterialTheme.typography.headlineSmall,
@@ -660,6 +698,13 @@ private fun PermissionRequest(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        Icon(
+            imageVector = Icons.Outlined.Lock,
+            contentDescription = null,
+            modifier = Modifier.size(64.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.height(Dimens.SpacingLarge))
         Text(
             text = "Permission Required",
             style = MaterialTheme.typography.headlineSmall
@@ -668,7 +713,7 @@ private fun PermissionRequest(
             text = "Grant storage access to view your videos",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
+            modifier = Modifier.padding(top = Dimens.SpacingMedium, bottom = Dimens.SpacingSection)
         )
         Button(onClick = onRequestPermission) {
             Text("Grant Permission")
@@ -715,7 +760,7 @@ private fun FolderViewSettingsDialog(
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(Dimens.SpacingDouble) // More airy
         ) {
             // Layout & Sort Group
             Column {
@@ -725,7 +770,7 @@ private fun FolderViewSettingsDialog(
                     color = Color.White,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(Dimens.SpacingMedium))
                 
                 // Row 1: Layout + Sort Order
                 Row(
@@ -736,17 +781,17 @@ private fun FolderViewSettingsDialog(
                     // Layout Toggle
                     Row(
                         modifier = Modifier
-                            .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
-                            .padding(4.dp)
+                            .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(Dimens.CornerMedium))
+                            .padding(Dimens.SpacingSmall)
                     ) {
                         LayoutType.entries.forEach { type ->
                             val isSelected = settings.layoutType == type
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
+                                    .clip(RoundedCornerShape(Dimens.CornerSmall))
                                     .background(if (isSelected) BrandAccent else Color.Transparent)
                                     .clickable { onLayoutTypeChange(type) }
-                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                                    .padding(horizontal = Dimens.SpacingLarge, vertical = 6.dp)
                             ) {
                                 Text(
                                     text = type.name,
@@ -760,7 +805,7 @@ private fun FolderViewSettingsDialog(
                     // Sort Order Toggle
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(Dimens.CornerMedium))
                             .background(Color.White.copy(alpha = 0.1f))
                             .clickable {
                                 onSortOrderChange(
@@ -768,7 +813,7 @@ private fun FolderViewSettingsDialog(
                                     else SortOrder.ASCENDING
                                 )
                             }
-                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                            .padding(horizontal = Dimens.SpacingLarge, vertical = 8.dp)
                     ) {
                          Row(verticalAlignment = Alignment.CenterVertically) {
                              Text(
@@ -780,14 +825,14 @@ private fun FolderViewSettingsDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(Dimens.SpacingMedium))
 
                 // Row 2: Sort Criteria (Scrollable)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMedium)
                 ) {
                     SortBy.entries.forEach { sort ->
                         androidx.compose.material3.FilterChip(
@@ -797,7 +842,8 @@ private fun FolderViewSettingsDialog(
                             colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = BrandAccent.copy(alpha = 0.2f),
                                 selectedLabelColor = BrandAccent,
-                                labelColor = Color.White
+                                labelColor = Color.White,
+                                containerColor = Color.White.copy(alpha = 0.05f)
                             ),
                             border = null
                         )
@@ -805,152 +851,68 @@ private fun FolderViewSettingsDialog(
                 }
             }
 
-            // Fields Compact Grid
+            // Visible Fields
             Column {
                 Text(
-                    text = "Visible Fields",
+                    text = "Visible Info",
                     style = MaterialTheme.typography.labelLarge,
                     color = Color.White,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(Dimens.SpacingMedium))
                 
                 FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMedium),
+                    verticalArrangement = Arrangement.spacedBy(Dimens.SpacingMedium)
                 ) {
-                    val fields = listOf(
-                        "Thumbnail" to settings.fieldVisibility.thumbnail,
-                        "Duration" to settings.fieldVisibility.duration,
-                        "Size" to settings.fieldVisibility.size,
-                        "Path" to settings.fieldVisibility.path,
-                        "Date" to settings.fieldVisibility.date,
-                        "Extension" to settings.fieldVisibility.fileExtension
-                    )
-                    
-                    fields.forEach { (label, isChecked) ->
-                        val key = when(label) {
-                            "Extension" -> "fileExtension"
-                            else -> label.lowercase()
-                        }
-                        
+                    // Helper composable for toggle chips
+                    val ToggleChip = @Composable { label: String, isChecked: Boolean, onToggle: () -> Unit ->
                         androidx.compose.material3.FilterChip(
                             selected = isChecked,
-                            onClick = { onFieldToggle(key) },
+                            onClick = onToggle,
                             label = { Text(label) },
                             leadingIcon = if (isChecked) {
-                                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                                { Icon(Icons.Default.Check, null, modifier = Modifier.size(Dimens.IconSmall)) }
                             } else null,
                             colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = BrandAccent.copy(alpha = 0.2f),
                                 selectedLabelColor = BrandAccent,
-                                labelColor = Color.White.copy(alpha = 0.7f)
-                            )
+                                labelColor = Color.White,
+                                containerColor = Color.White.copy(alpha = 0.05f)
+                            ),
+                            border = null
                         )
                     }
+
+                    ToggleChip("Thumbnail", settings.fieldVisibility.thumbnail) { onFieldToggle("thumbnail") }
+                    ToggleChip("Size", settings.fieldVisibility.size) { onFieldToggle("size") }
+                    ToggleChip("Duration", settings.fieldVisibility.duration) { onFieldToggle("duration") }
+                    ToggleChip("Date", settings.fieldVisibility.date) { onFieldToggle("date") }
                 }
             }
             
-            androidx.compose.material3.HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
-
             // Hidden Folders
-            val context = LocalContext.current
-            var showPermissionRequest by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        if (settings.showHiddenFolders) {
-                            onToggleHidden()
-                        } else {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
-                                showPermissionRequest = true
-                            } else {
-                                onToggleHidden()
-                            }
-                        }
-                    }
-                    .padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("Show Hidden Folders", color = Color.White, style = MaterialTheme.typography.bodyMedium)
-                androidx.compose.material3.Switch(
-                    checked = settings.showHiddenFolders,
-                    onCheckedChange = { 
-                        if (it) {
-                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
-                                showPermissionRequest = true
-                            } else {
-                                onToggleHidden()
-                            }
-                        } else {
-                            onToggleHidden()
-                        }
-                    },
-                    colors = androidx.compose.material3.SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = BrandAccent
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Show Hidden Folders",
+                         style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White
                     )
-                )
-            }
-            
-            if (showPermissionRequest) {
-                 androidx.compose.material3.AlertDialog(
-                    onDismissRequest = { showPermissionRequest = false },
-                    title = { Text("Permission Required") },
-                    text = { Text("Hidden folders require full storage access.") },
-                    confirmButton = {
-                        androidx.compose.material3.TextButton(onClick = {
-                            showPermissionRequest = false
-                            try {
-                                val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-                                intent.data = android.net.Uri.parse("package:${context.packageName}")
-                                context.startActivity(intent)
-                            } catch (e: Exception) {
-                                val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
-                                context.startActivity(intent)
-                            }
-                        }) { Text("Grant") }
-                    },
-                    dismissButton = {
-                        androidx.compose.material3.TextButton(onClick = { showPermissionRequest = false }) { Text("Cancel") }
-                    }
-                )
+                    androidx.compose.material3.Switch(
+                        checked = settings.showHiddenFolders,
+                        onCheckedChange = { onToggleHidden() },
+                        colors = androidx.compose.material3.SwitchDefaults.colors(
+                            checkedThumbColor = BrandAccent,
+                            checkedTrackColor = BrandAccent.copy(alpha = 0.5f)
+                        )
+                    )
+                }
             }
         }
-    }
-}
-
-@Composable
-private fun SettingsCheckbox(
-    label: String,
-    checked: Boolean,
-    onCheckedChange: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onCheckedChange)
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        androidx.compose.material3.Checkbox(
-            checked = checked,
-            onCheckedChange = { onCheckedChange() },
-            colors = androidx.compose.material3.CheckboxDefaults.colors(
-                checkedColor = BrandAccent,
-                checkmarkColor = Color.White,
-                uncheckedColor = Color.White.copy(alpha = 0.6f)
-            )
-        )
-        Text(
-            text = label,
-            modifier = Modifier.padding(start = 8.dp),
-            color = Color.White,
-            style = MaterialTheme.typography.bodyLarge
-        )
     }
 }
