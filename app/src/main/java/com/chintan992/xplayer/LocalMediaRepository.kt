@@ -26,7 +26,7 @@ class LocalMediaRepository @Inject constructor(
     
     private val mimeTypeSelection = "${MediaStore.Video.Media.MIME_TYPE} IN (${validMimeTypes.joinToString { "?" }})"
 
-    fun getVideos(): Flow<List<VideoItem>> = flow {
+    fun getVideos(includeHidden: Boolean = false): Flow<List<VideoItem>> = flow {
         val videoList = mutableListOf<VideoItem>()
         val projection = arrayOf(
             MediaStore.Video.Media._ID,
@@ -65,21 +65,24 @@ class LocalMediaRepository @Inject constructor(
                 val folderName = it.getString(bucketColumn) ?: "Unknown"
                 val uri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
                 
-                // Extract folder path from full file path
                 val folderPath = data.substringBeforeLast("/", "")
                 val subtitleUri = findSubtitleForVideo(data)
 
                 videoList.add(VideoItem(id, uri, name, duration, size, dateModified, folderPath, folderName, subtitleUri))
             }
         }
+        
+        if (includeHidden) {
+            videoList.addAll(getManualHiddenVideos())
+        }
 
         emit(videoList)
     }.flowOn(Dispatchers.IO)
 
-    fun getVideoFolders(): Flow<List<VideoFolder>> = flow {
+    fun getVideoFolders(includeHidden: Boolean = false): Flow<List<VideoFolder>> = flow {
         val folderMap = mutableMapOf<String, MutableList<VideoItem>>()
         
-        // First get all videos
+        // MediaStore Videos
         val projection = arrayOf(
             MediaStore.Video.Media._ID,
             MediaStore.Video.Media.DISPLAY_NAME,
@@ -123,6 +126,14 @@ class LocalMediaRepository @Inject constructor(
                 folderMap.getOrPut(folderPath) { mutableListOf() }.add(video)
             }
         }
+        
+        // Manual Scan for Hidden
+        if (includeHidden) {
+            val hiddenVideos = getManualHiddenVideos()
+            for (video in hiddenVideos) {
+                folderMap.getOrPut(video.folderPath) { mutableListOf() }.add(video)
+            }
+        }
 
         // Convert to folder list
         val folders = folderMap.map { (path, videos) ->
@@ -138,25 +149,24 @@ class LocalMediaRepository @Inject constructor(
         emit(folders)
     }.flowOn(Dispatchers.IO)
 
-    fun getVideosByFolder(folderPath: String): Flow<List<VideoItem>> = flow {
+    fun getVideosByFolder(folderPath: String, includeHidden: Boolean = false): Flow<List<VideoItem>> = flow {
         val videoList = mutableListOf<VideoItem>()
-        val projection = arrayOf(
-            MediaStore.Video.Media._ID,
-            MediaStore.Video.Media.DISPLAY_NAME,
-            MediaStore.Video.Media.DURATION,
-            MediaStore.Video.Media.SIZE,
-            MediaStore.Video.Media.DATE_MODIFIED,
-            MediaStore.Video.Media.DATA,
-            MediaStore.Video.Media.BUCKET_DISPLAY_NAME
-        )
         
-        // Add folder path filter
+        // If it's a hidden folder, MediaStore likely returns nothing, but we check anyway
         val selection = "$mimeTypeSelection AND ${MediaStore.Video.Media.DATA} LIKE ?"
         val selectionArgs = validMimeTypes + "$folderPath/%"
 
         val cursor = context.contentResolver.query(
             MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-            projection,
+            arrayOf(
+                MediaStore.Video.Media._ID,
+                MediaStore.Video.Media.DISPLAY_NAME,
+                MediaStore.Video.Media.DURATION,
+                MediaStore.Video.Media.SIZE,
+                MediaStore.Video.Media.DATE_MODIFIED,
+                MediaStore.Video.Media.DATA,
+                MediaStore.Video.Media.BUCKET_DISPLAY_NAME
+            ),
             selection,
             selectionArgs,
             "${MediaStore.Video.Media.DATE_MODIFIED} DESC"
@@ -186,9 +196,102 @@ class LocalMediaRepository @Inject constructor(
                 videoList.add(VideoItem(id, uri, name, duration, size, dateModified, videoFolderPath, folderName, subtitleUri))
             }
         }
+        
+        if (includeHidden) {
+            // Check if this specific folder has manual videos
+            // Optimization: if we already scan everything in getManualHiddenVideos, we can just filter
+            // But doing a full scan for one folder is inefficient?
+            // "getManualHiddenVideos" scans ROOT hidden folders.
+            // If folderPath is inside a hidden folder, or IS a hidden folder, we need to scan IT.
+            
+            // If folderPath starts with ".", it's hidden (relative to storage root usually, or just name)
+            // We'll just scan the directory using File API
+            try {
+                val dir = java.io.File(folderPath)
+                if (dir.exists() && dir.isDirectory) {
+                    val manualVideos = scanDirectoryForVideos(dir, recursive = false) // user is asking for this folder content
+                    // Merge, avoiding duplicates (by path/URI)
+                    val existingPaths = videoList.map { 
+                        // URI -> Path resolution is hard without context, but we can assume ID based uniqueness or Data path
+                        // For MediaStore items, we don't easily have 'Data' unless we kept it.
+                        // We do have 'folderPath' but not file path in VideoItem
+                        // Let's rely on name? VideoItem has `name`.
+                        it.name
+                    }.toSet()
+                    
+                    for (v in manualVideos) {
+                         if (!existingPaths.contains(v.name)) {
+                             videoList.add(v)
+                         }
+                    }
+                }
+            } catch (e: Exception) {
+                // Ignore
+            }
+        }
 
         emit(videoList)
     }.flowOn(Dispatchers.IO)
+
+    private fun getManualHiddenVideos(): List<VideoItem> {
+        val hiddenVideos = mutableListOf<VideoItem>()
+        try {
+            val root = android.os.Environment.getExternalStorageDirectory()
+            val dirs = root.listFiles { file -> 
+                file.isDirectory && file.name.startsWith(".") && !file.name.equals(".") && !file.name.equals("..") 
+            } ?: emptyArray()
+
+            for (dir in dirs) {
+                hiddenVideos.addAll(scanDirectoryForVideos(dir, recursive = true))
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return hiddenVideos
+    }
+    
+    private fun scanDirectoryForVideos(dir: java.io.File, recursive: Boolean): List<VideoItem> {
+        val videos = mutableListOf<VideoItem>()
+        val files = dir.listFiles() ?: return emptyList()
+        
+        for (file in files) {
+            if (file.isDirectory) {
+                if (recursive) {
+                    videos.addAll(scanDirectoryForVideos(file, true))
+                }
+            } else {
+                if (isValidVideoFile(file.name)) {
+                    val uri = android.net.Uri.fromFile(file)
+                    val name = file.name
+                    val parent = file.parentFile
+                    val folderName = parent?.name ?: "Unknown"
+                    val folderPath = parent?.absolutePath ?: ""
+                    val size = file.length()
+                    val modified = file.lastModified() / 1000
+                    
+                    // Duration not easily available without extracting, set to 0
+                    videos.add(VideoItem(
+                        id = file.hashCode().toLong(), // Synthetic ID
+                        uri = uri,
+                        name = name,
+                        duration = 0L,
+                        size = size,
+                        dateModified = modified,
+                        folderPath = folderPath,
+                        folderName = folderName,
+                        subtitleUri = findSubtitleForVideo(file.absolutePath)
+                    ))
+                }
+            }
+        }
+        return videos
+    }
+    
+    private fun isValidVideoFile(name: String): Boolean {
+        val extensions = arrayOf(".mp4", ".mkv", ".webm", ".avi", ".mov", ".3gp")
+        return extensions.any { name.endsWith(it, ignoreCase = true) }
+    }
+
     private fun findSubtitleForVideo(videoPath: String): android.net.Uri? {
         try {
             val videoFile = java.io.File(videoPath)

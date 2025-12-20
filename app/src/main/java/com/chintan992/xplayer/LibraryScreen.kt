@@ -45,6 +45,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -219,6 +220,7 @@ fun LibraryScreen(onVideoClick: (VideoItem) -> Unit) {
                 onSortByChange = { viewModel.setSortBy(it) },
                 onSortOrderChange = { viewModel.setSortOrder(it) },
                 onFieldToggle = { viewModel.toggleFieldVisibility(it) },
+                onToggleHidden = { viewModel.toggleShowHiddenFolders() },
                 onDismiss = { viewModel.hideSettings() }
             )
         }
@@ -709,6 +711,7 @@ private fun FolderViewSettingsDialog(
     onSortByChange: (SortBy) -> Unit,
     onSortOrderChange: (SortOrder) -> Unit,
     onFieldToggle: (String) -> Unit,
+    onToggleHidden: () -> Unit,
     onDismiss: () -> Unit
 ) {
     androidx.compose.material3.AlertDialog(
@@ -775,6 +778,53 @@ private fun FolderViewSettingsDialog(
                     SettingsCheckbox("Path", settings.fieldVisibility.path) { onFieldToggle("path") }
                     SettingsCheckbox("Date", settings.fieldVisibility.date) { onFieldToggle("date") }
                     SettingsCheckbox("Extension", settings.fieldVisibility.fileExtension) { onFieldToggle("fileExtension") }
+                }
+                
+                androidx.compose.material3.HorizontalDivider()
+                
+                // General section
+                Text("General", style = MaterialTheme.typography.titleSmall)
+                
+                val context = LocalContext.current
+                var showPermissionRequest by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+                
+                SettingsCheckbox(
+                    label = "Show Hidden Folders", 
+                    checked = settings.showHiddenFolders, 
+                    onCheckedChange = {
+                        if (settings.showHiddenFolders) {
+                            onToggleHidden()
+                        } else {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !android.os.Environment.isExternalStorageManager()) {
+                                showPermissionRequest = true
+                            } else {
+                                onToggleHidden()
+                            }
+                        }
+                    }
+                )
+
+                if (showPermissionRequest) {
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { showPermissionRequest = false },
+                        title = { Text("Permission Required") },
+                        text = { Text("To view hidden folders (like .movies), XPlayer needs 'All Files Access' permission. This allows scanning folders not indexed by the system.") },
+                        confirmButton = {
+                            androidx.compose.material3.TextButton(onClick = {
+                                showPermissionRequest = false
+                                try {
+                                    val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                                    intent.data = android.net.Uri.parse("package:${context.packageName}")
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                            }) { Text("Grant") }
+                        },
+                        dismissButton = {
+                            androidx.compose.material3.TextButton(onClick = { showPermissionRequest = false }) { Text("Cancel") }
+                        }
+                    )
                 }
             }
         },

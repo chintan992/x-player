@@ -9,7 +9,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -49,7 +51,8 @@ data class FolderViewSettings(
     val layoutType: LayoutType = LayoutType.LIST,
     val sortBy: SortBy = SortBy.TITLE,
     val sortOrder: SortOrder = SortOrder.ASCENDING,
-    val fieldVisibility: FieldVisibility = FieldVisibility()
+    val fieldVisibility: FieldVisibility = FieldVisibility(),
+    val showHiddenFolders: Boolean = false
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -85,11 +88,13 @@ class LibraryViewModel @Inject constructor(
     }
 
     // Raw videos from repository
-    private val rawVideos = _selectedFolder.flatMapLatest { folder ->
+    private val rawVideos = combine(_selectedFolder, _settings.map { it.showHiddenFolders }.distinctUntilChanged()) { folder, showHidden ->
+        Pair(folder, showHidden)
+    }.flatMapLatest { (folder, showHidden) ->
         if (folder != null) {
-            repository.getVideosByFolder(folder.path)
+            repository.getVideosByFolder(folder.path, showHidden)
         } else {
-            repository.getVideos()
+            repository.getVideos(showHidden)
         }
     }
 
@@ -105,7 +110,11 @@ class LibraryViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Raw folders from repository
-    private val rawFolders = repository.getVideoFolders()
+    private val rawFolders = _settings.map { it.showHiddenFolders }
+        .distinctUntilChanged()
+        .flatMapLatest { showHidden ->
+            repository.getVideoFolders(showHidden)
+        }
 
     // Sorted folders based on settings
     val folders = combine(rawFolders, _settings) { folderList, settings ->
@@ -164,6 +173,12 @@ class LibraryViewModel @Inject constructor(
 
     fun setSortOrder(order: SortOrder) {
         _settings.value = _settings.value.copy(sortOrder = order)
+    }
+
+    fun toggleShowHiddenFolders() {
+        _settings.value = _settings.value.copy(
+            showHiddenFolders = !_settings.value.showHiddenFolders
+        )
     }
 
     fun toggleFieldVisibility(field: String) {

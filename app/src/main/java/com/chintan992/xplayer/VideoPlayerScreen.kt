@@ -112,7 +112,6 @@ fun VideoPlayerScreen(
     var showSpeedDialog by remember { mutableStateOf(false) }
     var showAudioDialog by remember { mutableStateOf(false) }
     var showSubtitleDialog by remember { mutableStateOf(false) }
-    var showAspectRatioDialog by remember { mutableStateOf(false) }
     val activity = context as? Activity
 
     // Initialize ViewModel with player
@@ -440,7 +439,7 @@ fun VideoPlayerScreen(
                     onAudioClick = { showAudioDialog = true },
                     onSubtitleClick = { showSubtitleDialog = true },
                     onLockClick = { viewModel.toggleLock() },
-                    onAspectRatioClick = { showAspectRatioDialog = true },
+                    onAspectRatioClick = { viewModel.cycleAspectRatio() },
                     onOrientationClick = { viewModel.toggleOrientation() },
                     onPipClick = onEnterPip
                 )
@@ -480,17 +479,6 @@ fun VideoPlayerScreen(
                 showSubtitleDialog = false
             },
             onDismiss = { showSubtitleDialog = false }
-        )
-    }
-
-    if (showAspectRatioDialog) {
-        AspectRatioSelectorDialog(
-            currentMode = uiState.aspectRatioMode,
-            onModeSelected = {
-                viewModel.setAspectRatio(it)
-                showAspectRatioDialog = false
-            },
-            onDismiss = { showAspectRatioDialog = false }
         )
     }
 }
