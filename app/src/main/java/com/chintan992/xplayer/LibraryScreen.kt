@@ -1,5 +1,7 @@
 package com.chintan992.xplayer
 
+import com.chintan992.xplayer.ui.theme.BrandAccent
+
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.BackHandler
@@ -28,9 +30,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -130,7 +130,7 @@ fun LibraryScreen(onVideoClick: (VideoItem) -> Unit) {
                         // Settings button
                         IconButton(onClick = { viewModel.showSettings() }) {
                             Icon(
-                                imageVector = Icons.Default.Settings,
+                                imageVector = Icons.Outlined.Settings,
                                 contentDescription = "Settings"
                             )
                         }
@@ -138,9 +138,9 @@ fun LibraryScreen(onVideoClick: (VideoItem) -> Unit) {
                             IconButton(onClick = { viewModel.toggleViewMode() }) {
                                 Icon(
                                     imageVector = if (viewMode == ViewMode.ALL_VIDEOS) 
-                                        Icons.Default.Folder 
+                                        Icons.Outlined.Folder 
                                     else 
-                                        Icons.Default.VideoLibrary,
+                                        Icons.Outlined.VideoLibrary,
                                     contentDescription = if (viewMode == ViewMode.ALL_VIDEOS) 
                                         "Switch to Folder View" 
                                     else 
@@ -303,7 +303,7 @@ private fun FolderListItem(
                     )
                 } else {
                     Icon(
-                        imageVector = Icons.Default.Folder,
+                        imageVector = Icons.Outlined.Folder,
                         contentDescription = null,
                         modifier = Modifier.size(32.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -481,7 +481,7 @@ private fun VideoGridItem(
                                     modifier = Modifier
                                         .fillMaxWidth(progress)
                                         .fillMaxHeight()
-                                        .background(MaterialTheme.colorScheme.primary)
+                                        .background(BrandAccent)
                                 )
                             }
                         }
@@ -580,7 +580,7 @@ private fun VideoListItem(
                                     modifier = Modifier
                                         .fillMaxWidth(progress)
                                         .fillMaxHeight()
-                                        .background(MaterialTheme.colorScheme.primary)
+                                        .background(BrandAccent)
                                 )
                             }
                         }

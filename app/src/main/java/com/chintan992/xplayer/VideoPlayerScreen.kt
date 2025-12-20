@@ -1,5 +1,7 @@
 package com.chintan992.xplayer
 
+import com.chintan992.xplayer.ui.theme.BrandAccent
+
 import android.app.Activity
 import android.content.Context
 import android.content.pm.ActivityInfo
@@ -45,7 +47,6 @@ import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PictureInPicture
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
@@ -60,6 +61,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -368,7 +371,7 @@ fun VideoPlayerScreen(
             )
         }
 
-        // Volume indicator
+        // Volume indicator - No change needed here as it's a specific gesture UI
         AnimatedVisibility(
             visible = uiState.showVolumeIndicator,
             enter = fadeIn(),
@@ -377,9 +380,9 @@ fun VideoPlayerScreen(
         ) {
             GestureIndicator(
                 icon = when {
-                    uiState.volume < 0.01f -> Icons.Default.VolumeMute
-                    uiState.volume < 0.5f -> Icons.Default.VolumeDown
-                    else -> Icons.Default.VolumeUp
+                    uiState.volume < 0.01f -> Icons.AutoMirrored.Outlined.VolumeMute
+                    uiState.volume < 0.5f -> Icons.AutoMirrored.Outlined.VolumeDown
+                    else -> Icons.AutoMirrored.Outlined.VolumeUp
                 },
                 value = uiState.volume,
                 label = "${(uiState.volume * 100).toInt()}%"
@@ -723,25 +726,25 @@ private fun ControlButtonsRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         ControlButton(
-            icon = Icons.Default.SlowMotionVideo,
+            icon = Icons.Outlined.SlowMotionVideo,
             label = "${playbackSpeed}x",
             onClick = onSpeedClick
         )
 
-        // Decoder mode button (HW/SW/Auto)
-        ControlButton(
-            icon = Icons.Default.Memory,
-            label = when (decoderMode) {
+        // Decoder mode button (HW/SW/Auto) - Using Text Badge now
+        ControlBadge(
+            text = when (decoderMode) {
                 DecoderMode.HARDWARE -> "HW"
                 DecoderMode.SOFTWARE -> "SW"
-                DecoderMode.AUTO -> "Auto"
+                DecoderMode.AUTO -> "AU"
             },
+            label = "Decoder",
             onClick = onDecoderClick
         )
 
         if (hasAudioTracks) {
             ControlButton(
-                icon = Icons.Default.Headphones,
+                icon = Icons.Outlined.Headphones,
                 label = "Audio",
                 onClick = onAudioClick
             )
@@ -749,7 +752,7 @@ private fun ControlButtonsRow(
 
         if (hasSubtitles) {
             ControlButton(
-                icon = Icons.Default.Subtitles,
+                icon = Icons.Outlined.Subtitles,
                 label = "Subs",
                 onClick = onSubtitleClick
             )
@@ -781,6 +784,40 @@ private fun ControlButton(
                 contentDescription = label,
                 tint = Color.White,
                 modifier = Modifier.size(24.dp)
+            )
+        }
+        Text(
+            text = label,
+            color = Color.White,
+            style = MaterialTheme.typography.labelSmall
+        )
+    }
+}
+
+@Composable
+private fun ControlBadge(
+    text: String,
+    label: String,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(8.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .background(Color.White.copy(alpha = 0.2f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = text,
+                color = Color.White,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold
             )
         }
         Text(
@@ -889,7 +926,7 @@ private fun SeekBar(
                         modifier = Modifier
                             .fillMaxWidth(fraction)
                             .fillMaxHeight()
-                            .background(MaterialTheme.colorScheme.primary)
+                            .background(BrandAccent)
                     )
                 }
             }
@@ -917,7 +954,7 @@ private fun BottomControls(
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onLockClick) {
                 Icon(
-                    imageVector = Icons.Default.LockOpen,
+                    imageVector = Icons.Outlined.LockOpen,
                     contentDescription = "Lock Screen",
                     tint = Color.White
                 )
@@ -953,7 +990,7 @@ private fun BottomControls(
                 modifier = Modifier.clickable(onClick = onAspectRatioClick)
             ) {
                 Icon(
-                    imageVector = Icons.Default.AspectRatio,
+                    imageVector = Icons.Outlined.AspectRatio,
                     contentDescription = "Aspect Ratio",
                     tint = Color.White,
                     modifier = Modifier.size(24.dp)
@@ -970,7 +1007,7 @@ private fun BottomControls(
             // Orientation toggle button
             IconButton(onClick = onOrientationClick) {
                 Icon(
-                    imageVector = Icons.Default.ScreenRotation,
+                    imageVector = Icons.Outlined.ScreenRotation,
                     contentDescription = if (isLandscape) "Switch to Portrait" else "Switch to Landscape",
                     tint = Color.White
                 )
@@ -979,7 +1016,7 @@ private fun BottomControls(
             // PiP button
             IconButton(onClick = onPipClick) {
                 Icon(
-                    imageVector = Icons.Default.PictureInPicture,
+                    imageVector = Icons.Outlined.PictureInPicture,
                     contentDescription = "Picture in Picture",
                     tint = Color.White
                 )
@@ -1009,7 +1046,7 @@ private fun SpeedSelectorDialog(
                         Text(
                             text = "${speed}x",
                             fontWeight = if (speed == currentSpeed) FontWeight.Bold else FontWeight.Normal,
-                            color = if (speed == currentSpeed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                            color = if (speed == currentSpeed) BrandAccent else MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -1046,7 +1083,7 @@ private fun TrackSelectorDialog(
                             Text(
                                 text = "${track.name}${if (track.language != null) " (${track.language})" else ""}",
                                 fontWeight = if (track.isSelected) FontWeight.Bold else FontWeight.Normal,
-                                color = if (track.isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                color = if (track.isSelected) BrandAccent else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -1088,7 +1125,7 @@ private fun SubtitleSelectorDialog(
                         Text(
                             text = "${track.name}${if (track.language != null) " (${track.language})" else ""}",
                             fontWeight = if (track.isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (track.isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                            color = if (track.isSelected) BrandAccent else MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -1121,7 +1158,7 @@ private fun AspectRatioSelectorDialog(
                         Text(
                             text = mode.displayName,
                             fontWeight = if (mode == currentMode) FontWeight.Bold else FontWeight.Normal,
-                            color = if (mode == currentMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                            color = if (mode == currentMode) BrandAccent else MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
