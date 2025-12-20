@@ -57,6 +57,7 @@ dependencies {
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.session)
     implementation(libs.androidx.media3.datasource.okhttp)
+    implementation("org.checkerframework:checker-qual:3.37.0")
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
     implementation(libs.coil.compose)

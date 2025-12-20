@@ -4,26 +4,17 @@ import okhttp3.Interceptor
 import okhttp3.Response
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
+import javax.inject.Inject
 
-class CustomHeaderInterceptor : Interceptor {
-
-    companion object {
-        private val headers = ConcurrentHashMap<String, Map<String, String>>()
-
-        fun addHeaders(host: String, headersToAdd: Map<String, String>) {
-            headers[host] = headersToAdd
-        }
-
-        fun getHeaders(host: String): Map<String, String>? {
-            return headers[host]
-        }
-    }
+class CustomHeaderInterceptor @Inject constructor(
+    private val headerStorage: HeaderStorage
+) : Interceptor {
 
     @Throws(IOException::class)
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
         val host = request.url.host
-        val customHeaders = getHeaders(host)
+        val customHeaders = headerStorage.getHeaders(host)
 
         val newRequest = if (customHeaders != null) {
             val builder = request.newBuilder()
@@ -41,7 +32,12 @@ class CustomHeaderInterceptor : Interceptor {
             if (response.code == 503 || response.code == 429) {
                 tryCount++
                 response.close()
-                Thread.sleep(1000)
+                // Simple backoff
+                try {
+                    Thread.sleep(1000L * tryCount)
+                } catch (e: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                }
                 response = chain.proceed(newRequest)
             } else {
                 break

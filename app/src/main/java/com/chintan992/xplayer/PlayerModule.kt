@@ -19,8 +19,18 @@ object PlayerModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(): OkHttpClient = OkHttpClient.Builder()
-        .addInterceptor(CustomHeaderInterceptor())
+    fun provideHeaderStorage(): HeaderStorage = HeaderStorage()
+
+    @Provides
+    @Singleton
+    fun provideCustomHeaderInterceptor(headerStorage: HeaderStorage): CustomHeaderInterceptor {
+        return CustomHeaderInterceptor(headerStorage)
+    }
+
+    @Provides
+    @Singleton
+    fun provideOkHttpClient(customHeaderInterceptor: CustomHeaderInterceptor): OkHttpClient = OkHttpClient.Builder()
+        .addInterceptor(customHeaderInterceptor)
         .build()
 
     @Provides
@@ -31,11 +41,11 @@ object PlayerModule {
     ): ExoPlayer {
         // OkHttpDataSource for network requests (HTTP/HTTPS URLs)
         val httpDataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
-        
+
         // DefaultDataSource wraps httpDataSourceFactory and adds support for
         // content://, file://, asset://, and other local URI schemes
         val dataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
-        
+
         // Custom LoadControl to start playback faster
         val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
             .setBufferDurationsMs(
@@ -45,9 +55,14 @@ object PlayerModule {
                 1000   // bufferForPlaybackAfterRebufferMs
             )
             .build()
-        
+
         return ExoPlayer.Builder(context)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(context).setDataSourceFactory(dataSourceFactory))
+            .setMediaSourceFactory(
+                DefaultMediaSourceFactory(
+                    dataSourceFactory,
+                    com.chintan992.xplayer.extractor.CustomExtractorsFactory()
+                )
+            )
             .setLoadControl(loadControl)
             .build()
     }

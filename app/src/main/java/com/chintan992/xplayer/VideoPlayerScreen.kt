@@ -818,12 +818,31 @@ private fun SeekBar(
             onValueChange = { fraction ->
                 onSeek((fraction * duration).toLong())
             },
-            colors = SliderDefaults.colors(
-                thumbColor = Color.White,
-                activeTrackColor = MaterialTheme.colorScheme.primary,
-                inactiveTrackColor = Color.White.copy(alpha = 0.3f)
-            ),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            thumb = {
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .background(Color.White, CircleShape)
+                )
+            },
+            track = { sliderState ->
+                val fraction = sliderState.value
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(Color.White.copy(alpha = 0.3f))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(fraction)
+                            .fillMaxHeight()
+                            .background(MaterialTheme.colorScheme.primary)
+                    )
+                }
+            }
         )
     }
 }

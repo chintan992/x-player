@@ -31,6 +31,7 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.chintan992.xplayer.ui.theme.XPlayerTheme
 import dagger.hilt.android.AndroidEntryPoint
+import okhttp3.OkHttpClient
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -49,9 +50,18 @@ class MainActivity : ComponentActivity() {
         const val CONTROL_FORWARD = 3
     }
 
+    @Inject
+    lateinit var headerStorage: HeaderStorage
+
+    @Inject
+    lateinit var okHttpClient: OkHttpClient
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Verify Header Injection
+        verifyHeaderInjection()
         
         // Register PiP broadcast receiver
         registerPipReceiver()
@@ -66,6 +76,37 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    private fun verifyHeaderInjection() {
+        val host = "httpbin.org"
+        val headers = mapOf("X-Test-Header" to "VerificationValue")
+        headerStorage.addHeaders(host, headers)
+
+        // Run network request in background
+        Thread {
+            try {
+                val request = okhttp3.Request.Builder()
+                    .url("https://httpbin.org/get")
+                    .build()
+                
+                val response = okHttpClient.newCall(request).execute()
+                if (response.isSuccessful) {
+                    val body = response.body?.string() ?: ""
+                    if (body.contains("VerificationValue")) {
+                        android.util.Log.d("HeaderVerification", "SUCCESS: Custom header injected and received.")
+                    } else {
+                        android.util.Log.e("HeaderVerification", "FAILURE: Custom header NOT found in response.")
+                    }
+                } else {
+                    android.util.Log.e("HeaderVerification", "FAILURE: Request failed with code ${response.code}")
+                }
+                response.close()
+            } catch (e: Exception) {
+                android.util.Log.e("HeaderVerification", "ERROR: ${e.message}")
+                e.printStackTrace()
+            }
+        }.start()
     }
 
     private fun registerPipReceiver() {
