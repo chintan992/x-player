@@ -1021,76 +1021,7 @@ private fun SpeedSelectorDialog(
     )
 }
 
-@Composable
-private fun <T> CustomSelectionDialog(
-    title: String,
-    items: List<T>,
-    selectedItem: T?,
-    itemLabel: (T) -> String,
-    onItemSelected: (T) -> Unit,
-    onDismiss: () -> Unit
-) {
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = Color(0xFF1E1E1E),
-            tonalElevation = 4.dp,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Column(modifier = Modifier.padding(vertical = 16.dp)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Color.White,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
-                )
-                
-                LazyColumn(
-                    modifier = Modifier.heightIn(min = 50.dp, max = 400.dp)
-                ) {
-                    items(items) { item ->
-                        val isSelected = item == selectedItem
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onItemSelected(item) }
-                                .padding(horizontal = 24.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = isSelected,
-                                onClick = null,
-                                colors = RadioButtonDefaults.colors(
-                                    selectedColor = BrandAccent,
-                                    unselectedColor = Color.White.copy(alpha = 0.6f)
-                                )
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Text(
-                                text = itemLabel(item),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = if (isSelected) Color.White else Color.White.copy(alpha = 0.8f)
-                            )
-                        }
-                    }
-                }
-                
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(end = 16.dp, top = 8.dp),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(onClick = onDismiss) {
-                        Text("Cancel", color = BrandAccent)
-                    }
-                }
-            }
-        }
-    }
-}
+
 
 @Composable
 private fun TrackSelectorDialog(

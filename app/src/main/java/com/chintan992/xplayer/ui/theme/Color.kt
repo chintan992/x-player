@@ -3,7 +3,7 @@ package com.chintan992.xplayer.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // Brand Identity
-val BrandAccent = Color(0xFFE813AC) // The original vibrant pink
+val BrandAccent = Color(0xFFD81B60) // Richer, less aggressive "Cinema Pink"
 val BrandAccentLight = Color(0xFFFF5AC8)
 val BrandAccentDark = Color(0xFFB0007C)
 

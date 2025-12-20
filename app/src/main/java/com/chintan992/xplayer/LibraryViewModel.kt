@@ -59,7 +59,8 @@ data class FolderViewSettings(
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
     private val repository: LocalMediaRepository,
-    private val playbackPositionManager: PlaybackPositionManager
+    private val playbackPositionManager: PlaybackPositionManager,
+    private val preferencesRepository: LibraryPreferencesRepository
 ) : ViewModel() {
 
     private val _viewMode = MutableStateFlow(ViewMode.FOLDERS)
@@ -68,8 +69,13 @@ class LibraryViewModel @Inject constructor(
     private val _selectedFolder = MutableStateFlow<VideoFolder?>(null)
     val selectedFolder: StateFlow<VideoFolder?> = _selectedFolder.asStateFlow()
 
-    private val _settings = MutableStateFlow(FolderViewSettings())
-    val settings: StateFlow<FolderViewSettings> = _settings.asStateFlow()
+    // Persistent settings from DataStore
+    val settings: StateFlow<FolderViewSettings> = preferencesRepository.folderViewSettings
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = FolderViewSettings()
+        )
 
     private val _showSettingsDialog = MutableStateFlow(false)
     val showSettingsDialog: StateFlow<Boolean> = _showSettingsDialog.asStateFlow()
@@ -88,7 +94,7 @@ class LibraryViewModel @Inject constructor(
     }
 
     // Raw videos from repository
-    private val rawVideos = combine(_selectedFolder, _settings.map { it.showHiddenFolders }.distinctUntilChanged()) { folder, showHidden ->
+    private val rawVideos = combine(_selectedFolder, settings.map { it.showHiddenFolders }.distinctUntilChanged()) { folder, showHidden ->
         Pair(folder, showHidden)
     }.flatMapLatest { (folder, showHidden) ->
         if (folder != null) {
@@ -99,7 +105,7 @@ class LibraryViewModel @Inject constructor(
     }
 
     // Sorted videos based on settings
-    val videos = combine(rawVideos, _settings) { videoList, settings ->
+    val videos = combine(rawVideos, settings) { videoList, settings ->
         val sorted = when (settings.sortBy) {
             SortBy.TITLE -> videoList.sortedBy { it.name.lowercase() }
             SortBy.DATE -> videoList.sortedBy { it.dateModified }
@@ -110,14 +116,14 @@ class LibraryViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Raw folders from repository
-    private val rawFolders = _settings.map { it.showHiddenFolders }
+    private val rawFolders = settings.map { it.showHiddenFolders }
         .distinctUntilChanged()
         .flatMapLatest { showHidden ->
             repository.getVideoFolders(showHidden)
         }
 
     // Sorted folders based on settings
-    val folders = combine(rawFolders, _settings) { folderList, settings ->
+    val folders = combine(rawFolders, settings) { folderList, settings ->
         val sorted = when (settings.sortBy) {
             SortBy.TITLE -> folderList.sortedBy { it.name.lowercase() }
             SortBy.DATE -> folderList // No date for folders yet
@@ -164,34 +170,41 @@ class LibraryViewModel @Inject constructor(
     }
 
     fun setLayoutType(type: LayoutType) {
-        _settings.value = _settings.value.copy(layoutType = type)
+        viewModelScope.launch {
+            preferencesRepository.updateLayoutType(type)
+        }
     }
 
     fun setSortBy(sortBy: SortBy) {
-        _settings.value = _settings.value.copy(sortBy = sortBy)
+        viewModelScope.launch {
+            preferencesRepository.updateSortBy(sortBy)
+        }
     }
 
     fun setSortOrder(order: SortOrder) {
-        _settings.value = _settings.value.copy(sortOrder = order)
+        viewModelScope.launch {
+            preferencesRepository.updateSortOrder(order)
+        }
     }
 
     fun toggleShowHiddenFolders() {
-        _settings.value = _settings.value.copy(
-            showHiddenFolders = !_settings.value.showHiddenFolders
-        )
+        viewModelScope.launch {
+            preferencesRepository.updateShowHiddenFolders(!settings.value.showHiddenFolders)
+        }
     }
 
     fun toggleFieldVisibility(field: String) {
-        val current = _settings.value.fieldVisibility
-        val updated = when (field) {
-            "thumbnail" -> current.copy(thumbnail = !current.thumbnail)
-            "duration" -> current.copy(duration = !current.duration)
-            "fileExtension" -> current.copy(fileExtension = !current.fileExtension)
-            "size" -> current.copy(size = !current.size)
-            "date" -> current.copy(date = !current.date)
-            "path" -> current.copy(path = !current.path)
-            else -> current
+        viewModelScope.launch {
+            val current = settings.value.fieldVisibility
+            when (field) {
+                "thumbnail" -> preferencesRepository.updateFieldVisibility(thumbnail = !current.thumbnail)
+                "duration" -> preferencesRepository.updateFieldVisibility(duration = !current.duration)
+                "fileExtension" -> preferencesRepository.updateFieldVisibility(fileExtension = !current.fileExtension)
+                "size" -> preferencesRepository.updateFieldVisibility(size = !current.size)
+                "path" -> preferencesRepository.updateFieldVisibility(path = !current.path)
+                "date" -> preferencesRepository.updateFieldVisibility(date = !current.date)
+                else -> {}
+            }
         }
-        _settings.value = _settings.value.copy(fieldVisibility = updated)
     }
 }

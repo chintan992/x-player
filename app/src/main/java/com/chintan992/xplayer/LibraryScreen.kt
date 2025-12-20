@@ -60,10 +60,19 @@ import coil.request.ImageRequest
 import coil.request.videoFrameMillis
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.ui.draw.clip
+import android.os.Environment
+import android.content.Intent
+import android.provider.Settings
 import com.google.accompanist.permissions.rememberPermissionState
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.text.font.FontWeight
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -689,6 +698,7 @@ private fun formatFileSize(bytes: Long): String {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun FolderViewSettingsDialog(
     settings: FolderViewSettings,
@@ -699,30 +709,80 @@ private fun FolderViewSettingsDialog(
     onToggleHidden: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    androidx.compose.material3.AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("View Settings") },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Layout section
-                Text("Layout", style = MaterialTheme.typography.titleSmall)
+    CustomBaseDialog(
+        title = "View Settings",
+        onDismiss = onDismiss
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Layout & Sort Group
+            Column {
+                Text(
+                    text = "Display",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Row 1: Layout + Sort Order
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    LayoutType.entries.forEach { type ->
-                        androidx.compose.material3.FilterChip(
-                            selected = settings.layoutType == type,
-                            onClick = { onLayoutTypeChange(type) },
-                            label = { Text(type.name) }
-                        )
+                    // Layout Toggle
+                    Row(
+                        modifier = Modifier
+                            .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+                            .padding(4.dp)
+                    ) {
+                        LayoutType.entries.forEach { type ->
+                            val isSelected = settings.layoutType == type
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(if (isSelected) BrandAccent else Color.Transparent)
+                                    .clickable { onLayoutTypeChange(type) }
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = type.name,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (isSelected) Color.White else Color.White.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                    }
+
+                    // Sort Order Toggle
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.White.copy(alpha = 0.1f))
+                            .clickable {
+                                onSortOrderChange(
+                                    if (settings.sortOrder == SortOrder.ASCENDING) SortOrder.DESCENDING 
+                                    else SortOrder.ASCENDING
+                                )
+                            }
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                         Row(verticalAlignment = Alignment.CenterVertically) {
+                             Text(
+                                 text = if (settings.sortOrder == SortOrder.ASCENDING) "Ascending \u2191" else "Descending \u2193",
+                                 style = MaterialTheme.typography.labelMedium,
+                                 color = Color.White
+                             )
+                         }
                     }
                 }
 
-                // Sort section
-                Text("Sort By", style = MaterialTheme.typography.titleSmall)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Row 2: Sort Criteria (Scrollable)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -733,92 +793,135 @@ private fun FolderViewSettingsDialog(
                         androidx.compose.material3.FilterChip(
                             selected = settings.sortBy == sort,
                             onClick = { onSortByChange(sort) },
-                            label = { Text(sort.displayName) }
+                            label = { Text(sort.displayName) },
+                            colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = BrandAccent.copy(alpha = 0.2f),
+                                selectedLabelColor = BrandAccent,
+                                labelColor = Color.White
+                            ),
+                            border = null
                         )
                     }
                 }
+            }
 
-                // Sort order
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+            // Fields Compact Grid
+            Column {
+                Text(
+                    text = "Visible Fields",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    androidx.compose.material3.FilterChip(
-                        selected = settings.sortOrder == SortOrder.ASCENDING,
-                        onClick = { onSortOrderChange(SortOrder.ASCENDING) },
-                        label = { Text("↑ Oldest") }
+                    val fields = listOf(
+                        "Thumbnail" to settings.fieldVisibility.thumbnail,
+                        "Duration" to settings.fieldVisibility.duration,
+                        "Size" to settings.fieldVisibility.size,
+                        "Path" to settings.fieldVisibility.path,
+                        "Date" to settings.fieldVisibility.date,
+                        "Extension" to settings.fieldVisibility.fileExtension
                     )
-                    androidx.compose.material3.FilterChip(
-                        selected = settings.sortOrder == SortOrder.DESCENDING,
-                        onClick = { onSortOrderChange(SortOrder.DESCENDING) },
-                        label = { Text("↓ Newest") }
-                    )
+                    
+                    fields.forEach { (label, isChecked) ->
+                        val key = when(label) {
+                            "Extension" -> "fileExtension"
+                            else -> label.lowercase()
+                        }
+                        
+                        androidx.compose.material3.FilterChip(
+                            selected = isChecked,
+                            onClick = { onFieldToggle(key) },
+                            label = { Text(label) },
+                            leadingIcon = if (isChecked) {
+                                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                            } else null,
+                            colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = BrandAccent.copy(alpha = 0.2f),
+                                selectedLabelColor = BrandAccent,
+                                labelColor = Color.White.copy(alpha = 0.7f)
+                            )
+                        )
+                    }
                 }
+            }
+            
+            androidx.compose.material3.HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
 
-                // Fields section
-                Text("Show Fields", style = MaterialTheme.typography.titleSmall)
-                Column {
-                    SettingsCheckbox("Thumbnail", settings.fieldVisibility.thumbnail) { onFieldToggle("thumbnail") }
-                    SettingsCheckbox("Duration", settings.fieldVisibility.duration) { onFieldToggle("duration") }
-                    SettingsCheckbox("Size", settings.fieldVisibility.size) { onFieldToggle("size") }
-                    SettingsCheckbox("Path", settings.fieldVisibility.path) { onFieldToggle("path") }
-                    SettingsCheckbox("Date", settings.fieldVisibility.date) { onFieldToggle("date") }
-                    SettingsCheckbox("Extension", settings.fieldVisibility.fileExtension) { onFieldToggle("fileExtension") }
-                }
-                
-                androidx.compose.material3.HorizontalDivider()
-                
-                // General section
-                Text("General", style = MaterialTheme.typography.titleSmall)
-                
-                val context = LocalContext.current
-                var showPermissionRequest by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-                
-                SettingsCheckbox(
-                    label = "Show Hidden Folders", 
-                    checked = settings.showHiddenFolders, 
-                    onCheckedChange = {
+            // Hidden Folders
+            val context = LocalContext.current
+            var showPermissionRequest by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
                         if (settings.showHiddenFolders) {
                             onToggleHidden()
                         } else {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !android.os.Environment.isExternalStorageManager()) {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
                                 showPermissionRequest = true
                             } else {
                                 onToggleHidden()
                             }
                         }
                     }
-                )
-
-                if (showPermissionRequest) {
-                    androidx.compose.material3.AlertDialog(
-                        onDismissRequest = { showPermissionRequest = false },
-                        title = { Text("Permission Required") },
-                        text = { Text("To view hidden folders (like .movies), XPlayer needs 'All Files Access' permission. This allows scanning folders not indexed by the system.") },
-                        confirmButton = {
-                            androidx.compose.material3.TextButton(onClick = {
-                                showPermissionRequest = false
-                                try {
-                                    val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-                                    intent.data = android.net.Uri.parse("package:${context.packageName}")
-                                    context.startActivity(intent)
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                }
-                            }) { Text("Grant") }
-                        },
-                        dismissButton = {
-                            androidx.compose.material3.TextButton(onClick = { showPermissionRequest = false }) { Text("Cancel") }
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Show Hidden Folders", color = Color.White, style = MaterialTheme.typography.bodyMedium)
+                androidx.compose.material3.Switch(
+                    checked = settings.showHiddenFolders,
+                    onCheckedChange = { 
+                        if (it) {
+                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
+                                showPermissionRequest = true
+                            } else {
+                                onToggleHidden()
+                            }
+                        } else {
+                            onToggleHidden()
                         }
+                    },
+                    colors = androidx.compose.material3.SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = BrandAccent
                     )
-                }
+                )
             }
-        },
-        confirmButton = {
-            androidx.compose.material3.TextButton(onClick = onDismiss) {
-                Text("Done")
+            
+            if (showPermissionRequest) {
+                 androidx.compose.material3.AlertDialog(
+                    onDismissRequest = { showPermissionRequest = false },
+                    title = { Text("Permission Required") },
+                    text = { Text("Hidden folders require full storage access.") },
+                    confirmButton = {
+                        androidx.compose.material3.TextButton(onClick = {
+                            showPermissionRequest = false
+                            try {
+                                val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                                intent.data = android.net.Uri.parse("package:${context.packageName}")
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                                context.startActivity(intent)
+                            }
+                        }) { Text("Grant") }
+                    },
+                    dismissButton = {
+                        androidx.compose.material3.TextButton(onClick = { showPermissionRequest = false }) { Text("Cancel") }
+                    }
+                )
             }
         }
-    )
+    }
 }
 
 @Composable
@@ -831,16 +934,23 @@ private fun SettingsCheckbox(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onCheckedChange)
-            .padding(vertical = 4.dp),
+            .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         androidx.compose.material3.Checkbox(
             checked = checked,
-            onCheckedChange = { onCheckedChange() }
+            onCheckedChange = { onCheckedChange() },
+            colors = androidx.compose.material3.CheckboxDefaults.colors(
+                checkedColor = BrandAccent,
+                checkmarkColor = Color.White,
+                uncheckedColor = Color.White.copy(alpha = 0.6f)
+            )
         )
         Text(
             text = label,
-            modifier = Modifier.padding(start = 8.dp)
+            modifier = Modifier.padding(start = 8.dp),
+            color = Color.White,
+            style = MaterialTheme.typography.bodyLarge
         )
     }
 }
