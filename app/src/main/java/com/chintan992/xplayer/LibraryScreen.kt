@@ -350,14 +350,7 @@ private fun FolderListItem(
                 
                 Spacer(modifier = Modifier.height(2.dp))
                 
-                // Path
-                Text(
-                    text = folder.path,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+
             }
         }
     }
@@ -618,15 +611,7 @@ private fun VideoListItem(
                     }
                 }
                 
-                if (fieldVisibility.path) {
-                    Text(
-                        text = video.folderPath,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+
             }
         }
     }

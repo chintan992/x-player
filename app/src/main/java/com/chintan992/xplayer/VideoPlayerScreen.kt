@@ -61,6 +61,14 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.ui.window.Dialog
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material3.LinearProgressIndicator
@@ -353,40 +361,24 @@ fun VideoPlayerScreen(
             )
         }
 
-        // Brightness indicator
+        // Brightness indicator (Left Edge)
         AnimatedVisibility(
             visible = uiState.showBrightnessIndicator,
             enter = fadeIn(),
             exit = fadeOut(),
-            modifier = Modifier.align(Alignment.CenterStart).padding(start = 48.dp)
+            modifier = Modifier.align(Alignment.CenterStart).padding(start = 32.dp)
         ) {
-            GestureIndicator(
-                icon = when {
-                    uiState.brightness < 0.33f -> Icons.Default.BrightnessLow
-                    uiState.brightness < 0.66f -> Icons.Default.BrightnessMedium
-                    else -> Icons.Default.BrightnessHigh
-                },
-                value = uiState.brightness,
-                label = "${(uiState.brightness * 100).toInt()}%"
-            )
+            SlimIndicator(value = uiState.brightness)
         }
 
-        // Volume indicator - No change needed here as it's a specific gesture UI
+        // Volume indicator (Right Edge)
         AnimatedVisibility(
             visible = uiState.showVolumeIndicator,
             enter = fadeIn(),
             exit = fadeOut(),
-            modifier = Modifier.align(Alignment.CenterEnd).padding(end = 48.dp)
+            modifier = Modifier.align(Alignment.CenterEnd).padding(end = 32.dp)
         ) {
-            GestureIndicator(
-                icon = when {
-                    uiState.volume < 0.01f -> Icons.AutoMirrored.Outlined.VolumeMute
-                    uiState.volume < 0.5f -> Icons.AutoMirrored.Outlined.VolumeDown
-                    else -> Icons.AutoMirrored.Outlined.VolumeUp
-                },
-                value = uiState.volume,
-                label = "${(uiState.volume * 100).toInt()}%"
-            )
+            SlimIndicator(value = uiState.volume)
         }
 
         // Speed Override Indicator
@@ -449,6 +441,8 @@ fun VideoPlayerScreen(
             }
         }
     }
+
+
 
     // Dialogs
     if (showSpeedDialog) {
@@ -513,38 +507,23 @@ private fun SeekOverlay(
 
 
 @Composable
-private fun GestureIndicator(
-    icon: ImageVector,
+private fun SlimIndicator(
     value: Float,
-    label: String
+    modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = Modifier
-            .background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(12.dp))
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+    Box(
+        modifier = modifier
+            .width(6.dp)
+            .height(200.dp)
+            .clip(RoundedCornerShape(3.dp))
+            .background(Color.Black.copy(alpha = 0.5f))
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = Color.White,
-            modifier = Modifier.size(32.dp)
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        LinearProgressIndicator(
-            progress = { value },
+        Box(
             modifier = Modifier
-                .width(60.dp)
-                .height(4.dp)
-                .clip(RoundedCornerShape(2.dp)),
-            color = Color.White,
-            trackColor = Color.White.copy(alpha = 0.3f)
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = label,
-            color = Color.White,
-            style = MaterialTheme.typography.labelSmall
+                .fillMaxWidth()
+                .fillMaxHeight(value.coerceIn(0f, 1f))
+                .align(Alignment.BottomCenter)
+                .background(Color.White)
         )
     }
 }
@@ -615,15 +594,23 @@ private fun ControlsOverlay(
                 )
         )
 
+    var showInlineSettings by remember { mutableStateOf(false) }
+    
+    // Hide inline settings if controls fade out
+    LaunchedEffect(uiState.controlsVisible) {
+        if (!uiState.controlsVisible) {
+            showInlineSettings = false
+        }
+    }
+
+    // ... (rest of TopBar logic)
+
         // Top bar
         TopBar(
             title = uiState.videoTitle,
             onBackPressed = onBackPressed,
-            modifier = Modifier.align(Alignment.TopCenter)
-        )
-
-        // Control buttons row
-        ControlButtonsRow(
+            showInlineSettings = showInlineSettings,
+            onSettingsToggle = { showInlineSettings = !showInlineSettings },
             playbackSpeed = uiState.playbackSpeed,
             decoderMode = uiState.decoderMode,
             hasAudioTracks = uiState.audioTracks.size > 1,
@@ -632,12 +619,10 @@ private fun ControlsOverlay(
             onDecoderClick = onDecoderClick,
             onAudioClick = onAudioClick,
             onSubtitleClick = onSubtitleClick,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(top = 60.dp, start = 16.dp)
+            modifier = Modifier.align(Alignment.TopCenter)
         )
 
-        // Center play/pause controls
+    // ... (Remove settings sheet call)
         CenterControls(
             isPlaying = uiState.isPlaying,
             onPlayPause = onPlayPause,
@@ -682,6 +667,16 @@ private fun ControlsOverlay(
 private fun TopBar(
     title: String,
     onBackPressed: () -> Unit,
+    showInlineSettings: Boolean,
+    onSettingsToggle: () -> Unit,
+    playbackSpeed: Float,
+    decoderMode: DecoderMode,
+    hasAudioTracks: Boolean,
+    hasSubtitles: Boolean,
+    onSpeedClick: () -> Unit,
+    onDecoderClick: () -> Unit,
+    onAudioClick: () -> Unit,
+    onSubtitleClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -698,135 +693,81 @@ private fun TopBar(
             )
         }
 
-        Text(
-            text = title,
-            color = Color.White,
-            style = MaterialTheme.typography.titleMedium,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
+        if (showInlineSettings) {
+             Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                 // Inline Controls (Right to Left)
+                 
+                 if (hasSubtitles) {
+                    IconButton(onClick = onSubtitleClick) {
+                        Icon(
+                            imageVector = Icons.Outlined.Subtitles,
+                            contentDescription = "Subtitles",
+                            tint = Color.White
+                        )
+                    }
+                }
+                
+                if (hasAudioTracks) {
+                    IconButton(onClick = onAudioClick) {
+                         Icon(
+                            imageVector = Icons.Outlined.Headphones,
+                            contentDescription = "Audio",
+                            tint = Color.White
+                        )
+                    }
+                }
 
-@Composable
-private fun ControlButtonsRow(
-    playbackSpeed: Float,
-    decoderMode: DecoderMode,
-    hasAudioTracks: Boolean,
-    hasSubtitles: Boolean,
-    onSpeedClick: () -> Unit,
-    onDecoderClick: () -> Unit,
-    onAudioClick: () -> Unit,
-    onSubtitleClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        ControlButton(
-            icon = Icons.Outlined.SlowMotionVideo,
-            label = "${playbackSpeed}x",
-            onClick = onSpeedClick
-        )
+                // Decoder (Text Badge)
+                TextButton(onClick = onDecoderClick) {
+                    Text(
+                        text = when (decoderMode) {
+                            DecoderMode.HARDWARE -> "HW"
+                            DecoderMode.SOFTWARE -> "SW"
+                            DecoderMode.AUTO -> "AU"
+                        },
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        modifier = Modifier
+                            .background(Color.White.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
 
-        // Decoder mode button (HW/SW/Auto) - Using Text Badge now
-        ControlBadge(
-            text = when (decoderMode) {
-                DecoderMode.HARDWARE -> "HW"
-                DecoderMode.SOFTWARE -> "SW"
-                DecoderMode.AUTO -> "AU"
-            },
-            label = "Decoder",
-            onClick = onDecoderClick
-        )
-
-        if (hasAudioTracks) {
-            ControlButton(
-                icon = Icons.Outlined.Headphones,
-                label = "Audio",
-                onClick = onAudioClick
-            )
-        }
-
-        if (hasSubtitles) {
-            ControlButton(
-                icon = Icons.Outlined.Subtitles,
-                label = "Subs",
-                onClick = onSubtitleClick
-            )
-        }
-    }
-}
-
-@Composable
-private fun ControlButton(
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
-            .padding(8.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .background(Color.White.copy(alpha = 0.2f), CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = Color.White,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-        Text(
-            text = label,
-            color = Color.White,
-            style = MaterialTheme.typography.labelSmall
-        )
-    }
-}
-
-@Composable
-private fun ControlBadge(
-    text: String,
-    label: String,
-    onClick: () -> Unit
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
-            .padding(8.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .background(Color.White.copy(alpha = 0.2f), CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = text,
+                IconButton(onClick = onSpeedClick) {
+                     Icon(
+                        imageVector = Icons.Outlined.SlowMotionVideo,
+                        contentDescription = "Speed",
+                        tint = Color.White
+                    )
+                }
+            }
+        } else {
+             Text(
+                text = title,
                 color = Color.White,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
             )
         }
-        Text(
-            text = label,
-            color = Color.White,
-            style = MaterialTheme.typography.labelSmall
-        )
+        
+        IconButton(onClick = onSettingsToggle) {
+            Icon(
+                imageVector = Icons.Default.Settings,
+                contentDescription = "Settings",
+                tint = if (showInlineSettings) BrandAccent else Color.White
+            )
+        }
     }
 }
+
+
 
 @Composable
 private fun CenterControls(
@@ -1061,40 +1002,93 @@ private fun SpeedSelectorDialog(
 }
 
 @Composable
+private fun <T> CustomSelectionDialog(
+    title: String,
+    items: List<T>,
+    selectedItem: T?,
+    itemLabel: (T) -> String,
+    onItemSelected: (T) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = Color(0xFF1E1E1E),
+            tonalElevation = 4.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Column(modifier = Modifier.padding(vertical = 16.dp)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Color.White,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+                )
+                
+                LazyColumn(
+                    modifier = Modifier.heightIn(min = 50.dp, max = 400.dp)
+                ) {
+                    items(items) { item ->
+                        val isSelected = item == selectedItem
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onItemSelected(item) }
+                                .padding(horizontal = 24.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = isSelected,
+                                onClick = null,
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = BrandAccent,
+                                    unselectedColor = Color.White.copy(alpha = 0.6f)
+                                )
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(
+                                text = itemLabel(item),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (isSelected) Color.White else Color.White.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+                }
+                
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(end = 16.dp, top = 8.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel", color = BrandAccent)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun TrackSelectorDialog(
     title: String,
     tracks: List<TrackInfo>,
     onTrackSelected: (TrackInfo) -> Unit,
     onDismiss: () -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            if (tracks.isEmpty()) {
-                Text("No tracks available")
-            } else {
-                LazyColumn {
-                    items(tracks) { track ->
-                        TextButton(
-                            onClick = { onTrackSelected(track) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "${track.name}${if (track.language != null) " (${track.language})" else ""}",
-                                fontWeight = if (track.isSelected) FontWeight.Bold else FontWeight.Normal,
-                                color = if (track.isSelected) BrandAccent else MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
+    // Find currently selected track
+    val selectedTrack = tracks.find { it.isSelected }
+
+    CustomSelectionDialog(
+        title = title,
+        items = tracks,
+        selectedItem = selectedTrack,
+        itemLabel = { "${it.name}${if (it.language != null) " (${it.language})" else ""}" },
+        onItemSelected = onTrackSelected,
+        onDismiss = onDismiss
     )
 }
 
@@ -1104,38 +1098,18 @@ private fun SubtitleSelectorDialog(
     onTrackSelected: (TrackInfo?) -> Unit,
     onDismiss: () -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Subtitles") },
-        text = {
-            LazyColumn {
-                item {
-                    TextButton(
-                        onClick = { onTrackSelected(null) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Off")
-                    }
-                }
-                items(tracks) { track ->
-                    TextButton(
-                        onClick = { onTrackSelected(track) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "${track.name}${if (track.language != null) " (${track.language})" else ""}",
-                            fontWeight = if (track.isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (track.isSelected) BrandAccent else MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-            }
+    val options = listOf<TrackInfo?>(null) + tracks
+    val selectedTrack = tracks.find { it.isSelected } ?: options.first()
+
+    CustomSelectionDialog(
+        title = "Subtitles",
+        items = options,
+        selectedItem = selectedTrack,
+        itemLabel = { track -> 
+            track?.let { "${it.name}${if (it.language != null) " (${it.language})" else ""}" } ?: "Off"
         },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
+        onItemSelected = onTrackSelected,
+        onDismiss = onDismiss
     )
 }
 
@@ -1171,6 +1145,8 @@ private fun AspectRatioSelectorDialog(
         }
     )
 }
+
+
 
 private fun formatTime(ms: Long): String {
     val totalSeconds = ms / 1000
