@@ -6,6 +6,9 @@ plugins {
     id("org.jetbrains.kotlin.kapt")
 }
 
+import java.util.Properties
+import java.io.FileInputStream
+
 android {
     namespace = "com.chintan992.xplayer"
     compileSdk {
@@ -22,6 +25,20 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            val keystoreFile = project.rootProject.file("keystore.properties")
+            val props = Properties()
+            if (keystoreFile.exists()) {
+                props.load(FileInputStream(keystoreFile))
+                storeFile = file(props.getProperty("storeFile"))
+                storePassword = props.getProperty("storePassword")
+                keyAlias = props.getProperty("keyAlias")
+                keyPassword = props.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -29,6 +46,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
