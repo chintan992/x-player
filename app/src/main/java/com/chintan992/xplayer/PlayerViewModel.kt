@@ -513,13 +513,36 @@ class PlayerViewModel @Inject constructor(
         )
         currentVideoId = videoId
 
-        val resolver = resolvers.find { it.canResolve(url) }
-        
-        if (resolver != null) {
-            resolveAndPlay(resolver, url, subtitleUri)
+        // Check if this video is part of the current playlist in PlaylistManager
+        val playlist = PlaylistManager.currentPlaylist
+        val playlistIndex = if (videoId != null && playlist.isNotEmpty()) {
+            playlist.indexOfFirst { it.id.toString() == videoId }
+        } else -1
+
+        if (playlistIndex != -1) {
+            // Play from playlist
+            playPlaylist(playlist, playlistIndex)
         } else {
-            // Treat as direct link
-            playDirectly(url, emptyMap(), subtitleUri)
+            // Single item flow (Resolution or Direct)
+            val resolver = resolvers.find { it.canResolve(url) }
+            
+            if (resolver != null) {
+                resolveAndPlay(resolver, url, subtitleUri)
+            } else {
+                // Treat as direct link
+                playDirectly(url, videoTitle, emptyMap(), subtitleUri)
+            }
+        }
+    }
+
+    private fun playPlaylist(playlist: List<VideoItem>, startIndex: Int) {
+        player?.let { p ->
+            val mediaItems = playlist.map { video ->
+                createMediaItem(video.uri.toString(), video.name, video.subtitleUri)
+            }
+            p.setMediaItems(mediaItems, startIndex, 0L)
+            p.prepare()
+            p.play()
         }
     }
 
@@ -551,10 +574,7 @@ class PlayerViewModel @Inject constructor(
                         }
 
                         // Play the resolved URL
-                        // Prioritize config subtitles if any? For now, we use passed subtitleUri if config doesn't have equivalents 
-                        // or just use passed subtitleUri as overriding/local subtitle.
-                        playDirectly(config.url, config.headers, subtitleUri)
-                        // TODO: Handle subtitles from config specifically if needed
+                        playDirectly(config.url, _uiState.value.videoTitle, config.headers, subtitleUri)
                     }
                     is com.chintan992.xplayer.resolver.Resource.Error -> {
                         _uiState.value = _uiState.value.copy(
@@ -567,44 +587,9 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    private fun playDirectly(url: String, headers: Map<String, String>, subtitleUri: android.net.Uri? = null) {
+    private fun playDirectly(url: String, title: String, headers: Map<String, String>, subtitleUri: android.net.Uri? = null) {
         player?.let { p ->
-             val mediaItemBuilder = MediaItem.Builder()
-                .setUri(url)
-                .setTag(_uiState.value.videoTitle)
-            
-            if (subtitleUri != null) {
-                val subtitleConfig = MediaItem.SubtitleConfiguration.Builder(subtitleUri)
-                    .setMimeType(androidx.media3.common.MimeTypes.APPLICATION_SUBRIP) // Default to SRT or auto-detect if possible? Media3 usually needs mime type.
-                    // For local files, we might need to sniff or assume based on extension.
-                    // But simpler to try generic or use APPLICATION_SUBRIP for .srt. 
-                    // If .ass, use APPLICATION_SSA.
-                    // Let's implement simple extension check.
-                    .apply {
-                        val path = subtitleUri.path
-                        if (path != null) {
-                            if (path.endsWith(".ass", ignoreCase = true) || path.endsWith(".ssa", ignoreCase = true)) {
-                                setMimeType(androidx.media3.common.MimeTypes.TEXT_SSA)
-                            } else if (path.endsWith(".vtt", ignoreCase = true)) {
-                                setMimeType(androidx.media3.common.MimeTypes.TEXT_VTT)
-                            } else {
-                                setMimeType(androidx.media3.common.MimeTypes.APPLICATION_SUBRIP)
-                            }
-                        }
-                        setLanguage("und") // Undefined language
-                        setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
-                    }
-                    .build()
-                mediaItemBuilder.setSubtitleConfigurations(listOf(subtitleConfig))
-            }
-
-            // Note: Headers are handled by the Interceptor/HeaderStorage, 
-            // but we can also attach them to MediaItem if we were using a different DataSourceFactory.
-            // Since we use a global OkHttpDataSourceFactory with our interceptor, 
-            // storing them in HeaderStorage (done in resolveAndPlay) is sufficient for mapped hosts.
-            // For direct play without resolution, we assume headers are either not needed or already in storage.
-            // If playDirectly is called with headers, we should make sure they are stored.
-            
+            // Note: Headers are handled by the Interceptor/HeaderStorage
             if (headers.isNotEmpty()) {
                  try {
                     val host = java.net.URI(url).host
@@ -616,9 +601,40 @@ class PlayerViewModel @Inject constructor(
                 }
             }
 
-            p.setMediaItem(mediaItemBuilder.build())
+            val mediaItem = createMediaItem(url, title, subtitleUri)
+            p.setMediaItem(mediaItem)
             p.prepare()
             p.play()
         }
+    }
+
+    private fun createMediaItem(url: String, title: String, subtitleUri: android.net.Uri?): MediaItem {
+        val mediaItemBuilder = MediaItem.Builder()
+            .setUri(url)
+            .setTag(title)
+        
+        if (subtitleUri != null) {
+            val subtitleConfig = MediaItem.SubtitleConfiguration.Builder(subtitleUri)
+                .apply {
+                    val path = subtitleUri.path
+                    if (path != null) {
+                        if (path.endsWith(".ass", ignoreCase = true) || path.endsWith(".ssa", ignoreCase = true)) {
+                            setMimeType(androidx.media3.common.MimeTypes.TEXT_SSA)
+                        } else if (path.endsWith(".vtt", ignoreCase = true)) {
+                            setMimeType(androidx.media3.common.MimeTypes.TEXT_VTT)
+                        } else {
+                            setMimeType(androidx.media3.common.MimeTypes.APPLICATION_SUBRIP)
+                        }
+                    } else {
+                         setMimeType(androidx.media3.common.MimeTypes.APPLICATION_SUBRIP)
+                    }
+                    setLanguage("und")
+                    setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+                }
+                .build()
+            mediaItemBuilder.setSubtitleConfigurations(listOf(subtitleConfig))
+        }
+        
+        return mediaItemBuilder.build()
     }
 }

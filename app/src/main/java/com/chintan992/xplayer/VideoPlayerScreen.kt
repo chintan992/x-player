@@ -99,6 +99,8 @@ fun VideoPlayerScreen(
     player: ExoPlayer,
     videoTitle: String = "Video",
     videoUri: String? = null,
+    videoId: String? = null,
+    subtitleUri: android.net.Uri? = null,
     onBackPressed: () -> Unit = {},
     onEnterPip: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -115,7 +117,14 @@ fun VideoPlayerScreen(
 
     // Initialize ViewModel with player
     LaunchedEffect(player) {
-        viewModel.setPlayer(player, videoTitle, videoUri)
+        viewModel.setPlayer(player, videoTitle, videoId)
+    }
+
+    // Start Playback
+    LaunchedEffect(videoUri, videoId) {
+         if (videoUri != null) {
+            viewModel.playMedia(videoUri, videoTitle, videoId, subtitleUri)
+         }
     }
 
     // Handle back press
@@ -241,77 +250,104 @@ fun VideoPlayerScreen(
         )
 
         // Gesture detection overlay
-        Row(modifier = Modifier.fillMaxSize()) {
-            // Left side - Brightness gesture
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .pointerInput(uiState.isLocked) {
-                        if (!uiState.isLocked) {
-                            detectDragGestures(
-                                onDrag = { _, dragAmount ->
-                                    val delta = -dragAmount.y / 500f
-                                    viewModel.updateBrightness(delta)
-                                }
-                            )
-                        }
-                    }
-                    .pointerInput(uiState.isLocked) {
-                        if (!uiState.isLocked) {
-                            detectTapGestures(
-                                onTap = { viewModel.toggleControls() },
-                                onDoubleTap = { viewModel.seekBackward() },
-                                onPress = {
-                                    try {
-                                        withTimeout(500) {
-                                            tryAwaitRelease()
-                                        }
-                                    } catch (e: TimeoutCancellationException) {
-                                        viewModel.startSpeedOverride()
-                                        tryAwaitRelease()
-                                        viewModel.stopSpeedOverride()
-                                    }
-                                }
-                            )
-                        }
-                    }
-            )
+        // We use a single surface to handle all gestures, enabling center double-tap and unified drag logic
+        var dragMode by remember { mutableStateOf(DragMode.NONE) }
+        var startDragX by remember { mutableFloatStateOf(0f) }
 
-            // Right side - Volume gesture
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .pointerInput(uiState.isLocked) {
-                        if (!uiState.isLocked) {
-                            detectDragGestures(
-                                onDrag = { _, dragAmount ->
-                                    val delta = -dragAmount.y / 500f
-                                    viewModel.updateVolume(delta)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(uiState.isLocked) {
+                    if (!uiState.isLocked) {
+                        detectTapGestures(
+                            onTap = { viewModel.toggleControls() },
+                            onDoubleTap = { offset ->
+                                val width = size.width
+                                if (offset.x < width * 0.35f) {
+                                    viewModel.seekBackward()
+                                } else if (offset.x > width * 0.65f) {
+                                    viewModel.seekForward()
+                                } else {
+                                    viewModel.togglePlayPause()
                                 }
-                            )
-                        }
-                    }
-                    .pointerInput(uiState.isLocked) {
-                        if (!uiState.isLocked) {
-                            detectTapGestures(
-                                onTap = { viewModel.toggleControls() },
-                                onDoubleTap = { viewModel.seekForward() },
-                                onPress = {
-                                    try {
-                                        withTimeout(500) {
-                                            tryAwaitRelease()
-                                        }
-                                    } catch (e: TimeoutCancellationException) {
-                                        viewModel.startSpeedOverride()
+                            },
+                            onPress = {
+                                try {
+                                    withTimeout(500) {
                                         tryAwaitRelease()
-                                        viewModel.stopSpeedOverride()
+                                    }
+                                } catch (e: TimeoutCancellationException) {
+                                    viewModel.startSpeedOverride()
+                                    tryAwaitRelease()
+                                    viewModel.stopSpeedOverride()
+                                }
+                            }
+                        )
+                    }
+                }
+                .pointerInput(uiState.isLocked) {
+                    if (!uiState.isLocked) {
+                        detectDragGestures(
+                            onDragStart = { offset ->
+                                startDragX = offset.x
+                                dragMode = DragMode.NONE
+                            },
+                            onDragEnd = {
+                                viewModel.endSeeking()
+                                dragMode = DragMode.NONE
+                            },
+                            onDragCancel = {
+                                viewModel.endSeeking()
+                                dragMode = DragMode.NONE
+                            },
+                            onDrag = { change, dragAmount ->
+                                // Determine mode if not set
+                                if (dragMode == DragMode.NONE) {
+                                    if (kotlin.math.abs(dragAmount.x) > kotlin.math.abs(dragAmount.y)) {
+                                        dragMode = DragMode.SEEK
+                                        viewModel.startSeeking(uiState.currentPosition)
+                                    } else {
+                                        // Vertical
+                                        dragMode = if (startDragX < size.width / 2) {
+                                            DragMode.BRIGHTNESS
+                                        } else {
+                                            DragMode.VOLUME
+                                        }
                                     }
                                 }
-                            )
-                        }
+
+                                when (dragMode) {
+                                    DragMode.SEEK -> {
+                                        // 1px = 200ms
+                                        val seekDelta = (dragAmount.x * 200).toLong()
+                                        viewModel.updateSeekPosition(uiState.seekPosition + seekDelta)
+                                    }
+                                    DragMode.BRIGHTNESS -> {
+                                        val delta = -dragAmount.y / 500f
+                                        viewModel.updateBrightness(delta)
+                                    }
+                                    DragMode.VOLUME -> {
+                                        val delta = -dragAmount.y / 500f
+                                        viewModel.updateVolume(delta)
+                                    }
+                                    else -> {} // Should not happen
+                                }
+                            }
+                        )
                     }
+                }
+        )
+
+        // Center Seek Overlay
+        AnimatedVisibility(
+            visible = uiState.isSeeking,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.align(Alignment.Center)
+        ) {
+            SeekOverlay(
+                current = uiState.seekPosition,
+                duration = uiState.duration
             )
         }
 
@@ -380,8 +416,8 @@ fun VideoPlayerScreen(
                 }
             }
         }
-
-        // Controls overlay
+        
+        // ... controls overlay uses same state ...
         AnimatedVisibility(
             visible = uiState.controlsVisible,
             enter = fadeIn(),
@@ -458,6 +494,32 @@ fun VideoPlayerScreen(
         )
     }
 }
+
+private enum class DragMode {
+    NONE, BRIGHTNESS, VOLUME, SEEK
+}
+
+@Composable
+private fun SeekOverlay(
+    current: Long,
+    duration: Long
+) {
+    Column(
+        modifier = Modifier
+            .background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(12.dp))
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "${formatTime(current)} / ${formatTime(duration)}",
+            color = Color.White,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+
 
 @Composable
 private fun GestureIndicator(

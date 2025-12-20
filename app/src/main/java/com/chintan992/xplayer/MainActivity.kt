@@ -229,6 +229,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (player.isPlaying) {
+            enterPipMode()
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         pipReceiver?.let { unregisterReceiver(it) }
@@ -244,6 +251,8 @@ fun NavGraph(
     // Store current video info for player screen
     var currentVideoTitle by remember { mutableStateOf("") }
     var currentVideoUri by remember { mutableStateOf<String?>(null) }
+    var currentVideoId by remember { mutableStateOf<String?>(null) }
+    var currentSubtitleUri by remember { mutableStateOf<android.net.Uri?>(null) }
 
     NavHost(navController = navController, startDestination = "library") {
         composable("library") {
@@ -251,36 +260,17 @@ fun NavGraph(
                 // Store video info for player screen
                 currentVideoTitle = videoItem.name
                 currentVideoUri = videoItem.uri.toString()
+                currentVideoId = videoItem.id.toString()
+                currentSubtitleUri = videoItem.subtitleUri
                 
-                // Check if we need to prepare the player (new video or player stopped)
+                // Set current index in PlaylistManager for seamless navigation reference
+                // (Though PlayerViewModel will recalculate, it's good to sync)
                 val playlist = PlaylistManager.currentPlaylist
-                val index = PlaylistManager.currentVideoIndex
-                
-                if (playlist.isNotEmpty()) {
-                    val mediaItems = playlist.map { video ->
-                        MediaItem.Builder()
-                            .setUri(video.uri)
-                            .setMediaId(video.uri.toString())
-                            .setTag(video.name) // Store title in tag
-                            .build()
-                    }
-                    
-                    player.setMediaItems(mediaItems, index, 0L)
-                    player.prepare()
-                    player.playWhenReady = true
-                } else {
-                    // Fallback to single item if playlist is empty (should ideally not happen)
-                    val mediaItem = MediaItem.Builder()
-                        .setUri(videoItem.uri)
-                        .setMediaId(videoItem.uri.toString())
-                        .setTag(videoItem.name)
-                        .build()
-                        
-                    player.setMediaItem(mediaItem)
-                    player.prepare()
-                    player.playWhenReady = true
+                val index = playlist.indexOfFirst { it.id == videoItem.id }
+                if (index != -1) {
+                    PlaylistManager.currentVideoIndex = index
                 }
-                
+
                 navController.navigate("player")
             })
         }
@@ -289,6 +279,8 @@ fun NavGraph(
                 player = player,
                 videoTitle = currentVideoTitle,
                 videoUri = currentVideoUri,
+                videoId = currentVideoId,
+                subtitleUri = currentSubtitleUri,
                 onBackPressed = {
                     player.pause()
                     navController.popBackStack()
