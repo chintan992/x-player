@@ -56,7 +56,12 @@ object PlayerModule {
             )
             .build()
 
+        // Use DefaultRenderersFactory to enable extension renderers (like FFmpeg)
+        val renderersFactory = androidx.media3.exoplayer.DefaultRenderersFactory(context)
+            .setExtensionRendererMode(androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
+
         return ExoPlayer.Builder(context)
+            .setRenderersFactory(renderersFactory)
             .setMediaSourceFactory(
                 DefaultMediaSourceFactory(
                     dataSourceFactory,

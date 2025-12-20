@@ -67,8 +67,9 @@ class LocalMediaRepository @Inject constructor(
                 
                 // Extract folder path from full file path
                 val folderPath = data.substringBeforeLast("/", "")
+                val subtitleUri = findSubtitleForVideo(data)
 
-                videoList.add(VideoItem(id, uri, name, duration, size, dateModified, folderPath, folderName))
+                videoList.add(VideoItem(id, uri, name, duration, size, dateModified, folderPath, folderName, subtitleUri))
             }
         }
 
@@ -116,8 +117,9 @@ class LocalMediaRepository @Inject constructor(
                 val folderName = it.getString(bucketColumn) ?: "Unknown"
                 val uri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
                 val folderPath = data.substringBeforeLast("/", "")
+                val subtitleUri = findSubtitleForVideo(data)
 
-                val video = VideoItem(id, uri, name, duration, size, dateModified, folderPath, folderName)
+                val video = VideoItem(id, uri, name, duration, size, dateModified, folderPath, folderName, subtitleUri)
                 folderMap.getOrPut(folderPath) { mutableListOf() }.add(video)
             }
         }
@@ -179,11 +181,30 @@ class LocalMediaRepository @Inject constructor(
                 val folderName = it.getString(bucketColumn) ?: "Unknown"
                 val uri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
                 val videoFolderPath = data.substringBeforeLast("/", "")
+                val subtitleUri = findSubtitleForVideo(data)
 
-                videoList.add(VideoItem(id, uri, name, duration, size, dateModified, videoFolderPath, folderName))
+                videoList.add(VideoItem(id, uri, name, duration, size, dateModified, videoFolderPath, folderName, subtitleUri))
             }
         }
 
         emit(videoList)
     }.flowOn(Dispatchers.IO)
+    private fun findSubtitleForVideo(videoPath: String): android.net.Uri? {
+        try {
+            val videoFile = java.io.File(videoPath)
+            val parentFile = videoFile.parentFile ?: return null
+            val baseName = videoFile.nameWithoutExtension
+            
+            val extensions = arrayOf("srt", "ass", "ssa", "vtt")
+            for (ext in extensions) {
+                val subtitleFile = java.io.File(parentFile, "$baseName.$ext")
+                if (subtitleFile.exists()) {
+                    return android.net.Uri.fromFile(subtitleFile)
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return null
+    }
 }

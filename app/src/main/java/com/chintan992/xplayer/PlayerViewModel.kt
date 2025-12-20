@@ -62,12 +62,15 @@ data class PlayerUiState(
     val showVolumeIndicator: Boolean = false,
     val isSeeking: Boolean = false,
     val seekPosition: Long = 0L,
-    val isSpeedOverridden: Boolean = false
+    val isSpeedOverridden: Boolean = false,
+    val isResolving: Boolean = false,
+    val resolvingError: String? = null
 )
 
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
-    private val playbackPositionManager: PlaybackPositionManager
+    private val playbackPositionManager: PlaybackPositionManager,
+    private val headerStorage: HeaderStorage
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlayerUiState())
@@ -495,5 +498,127 @@ class PlayerViewModel @Inject constructor(
 
     fun setInitialVolume(volume: Float) {
         _uiState.value = _uiState.value.copy(volume = volume)
+    }
+
+    // Resolution Logic
+    // Placeholder for resolvers - will be injected or populated later
+    private val resolvers: List<com.chintan992.xplayer.resolver.StreamResolver> = emptyList()
+
+    fun playMedia(url: String, videoTitle: String, videoId: String? = null, subtitleUri: android.net.Uri? = null) {
+        // Reset state
+        _uiState.value = _uiState.value.copy(
+            isResolving = false,
+            resolvingError = null,
+            videoTitle = videoTitle
+        )
+        currentVideoId = videoId
+
+        val resolver = resolvers.find { it.canResolve(url) }
+        
+        if (resolver != null) {
+            resolveAndPlay(resolver, url, subtitleUri)
+        } else {
+            // Treat as direct link
+            playDirectly(url, emptyMap(), subtitleUri)
+        }
+    }
+
+    private fun resolveAndPlay(resolver: com.chintan992.xplayer.resolver.StreamResolver, url: String, subtitleUri: android.net.Uri?) {
+        viewModelScope.launch {
+            resolver.resolve(url).collect { resource ->
+                when (resource) {
+                    is com.chintan992.xplayer.resolver.Resource.Loading -> {
+                        _uiState.value = _uiState.value.copy(
+                            isResolving = true,
+                            resolvingError = null
+                        )
+                    }
+                    is com.chintan992.xplayer.resolver.Resource.Success -> {
+                        _uiState.value = _uiState.value.copy(isResolving = false)
+                        val config = resource.data
+                        
+                        // Update headers if present
+                        if (config.headers.isNotEmpty()) {
+                            // Extract host from URL
+                            try {
+                                val host = java.net.URI(config.url).host
+                                if (host != null) {
+                                    headerStorage.addHeaders(host, config.headers)
+                                }
+                            } catch (e: Exception) {
+                                // Ignore invalid URI for header storage purposes
+                            }
+                        }
+
+                        // Play the resolved URL
+                        // Prioritize config subtitles if any? For now, we use passed subtitleUri if config doesn't have equivalents 
+                        // or just use passed subtitleUri as overriding/local subtitle.
+                        playDirectly(config.url, config.headers, subtitleUri)
+                        // TODO: Handle subtitles from config specifically if needed
+                    }
+                    is com.chintan992.xplayer.resolver.Resource.Error -> {
+                        _uiState.value = _uiState.value.copy(
+                            isResolving = false,
+                            resolvingError = resource.message
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private fun playDirectly(url: String, headers: Map<String, String>, subtitleUri: android.net.Uri? = null) {
+        player?.let { p ->
+             val mediaItemBuilder = MediaItem.Builder()
+                .setUri(url)
+                .setTag(_uiState.value.videoTitle)
+            
+            if (subtitleUri != null) {
+                val subtitleConfig = MediaItem.SubtitleConfiguration.Builder(subtitleUri)
+                    .setMimeType(androidx.media3.common.MimeTypes.APPLICATION_SUBRIP) // Default to SRT or auto-detect if possible? Media3 usually needs mime type.
+                    // For local files, we might need to sniff or assume based on extension.
+                    // But simpler to try generic or use APPLICATION_SUBRIP for .srt. 
+                    // If .ass, use APPLICATION_SSA.
+                    // Let's implement simple extension check.
+                    .apply {
+                        val path = subtitleUri.path
+                        if (path != null) {
+                            if (path.endsWith(".ass", ignoreCase = true) || path.endsWith(".ssa", ignoreCase = true)) {
+                                setMimeType(androidx.media3.common.MimeTypes.TEXT_SSA)
+                            } else if (path.endsWith(".vtt", ignoreCase = true)) {
+                                setMimeType(androidx.media3.common.MimeTypes.TEXT_VTT)
+                            } else {
+                                setMimeType(androidx.media3.common.MimeTypes.APPLICATION_SUBRIP)
+                            }
+                        }
+                        setLanguage("und") // Undefined language
+                        setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+                    }
+                    .build()
+                mediaItemBuilder.setSubtitleConfigurations(listOf(subtitleConfig))
+            }
+
+            // Note: Headers are handled by the Interceptor/HeaderStorage, 
+            // but we can also attach them to MediaItem if we were using a different DataSourceFactory.
+            // Since we use a global OkHttpDataSourceFactory with our interceptor, 
+            // storing them in HeaderStorage (done in resolveAndPlay) is sufficient for mapped hosts.
+            // For direct play without resolution, we assume headers are either not needed or already in storage.
+            // If playDirectly is called with headers, we should make sure they are stored.
+            
+            if (headers.isNotEmpty()) {
+                 try {
+                    val host = java.net.URI(url).host
+                    if (host != null) {
+                        headerStorage.addHeaders(host, headers)
+                    }
+                } catch (e: Exception) {
+                    // Ignore
+                }
+            }
+
+            p.setMediaItem(mediaItemBuilder.build())
+            p.prepare()
+            p.play()
+        }
     }
 }
