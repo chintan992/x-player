@@ -120,15 +120,28 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.TimeoutCancellationException
 
+import android.net.Uri
+import android.view.ViewGroup
+import android.widget.FrameLayout
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.media3.ui.AspectRatioFrameLayout
+
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun VideoPlayerScreen(
     player: ExoPlayer,
-    videoTitle: String = "Video",
-    videoUri: String? = null,
-    videoId: String? = null,
-    subtitleUri: android.net.Uri? = null,
-    onBackPressed: () -> Unit = {},
-    onEnterPip: () -> Unit = {},
+    videoTitle: String,
+    videoUri: String?,
+    videoId: String?,
+    subtitleUri: Uri?,
+    onBackPressed: () -> Unit,
+    onEnterPip: () -> Unit,
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    sharedTransitionScope: SharedTransitionScope,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -253,28 +266,40 @@ fun VideoPlayerScreen(
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        // Video surface
-        AndroidView(
-            modifier = Modifier.fillMaxSize(),
-            factory = { ctx ->
-                PlayerView(ctx).apply {
-                    this.player = player
-                    useController = false
-                    keepScreenOn = true
-                    setShowBuffering(androidx.media3.ui.PlayerView.SHOW_BUFFERING_NEVER)
-                }
-            },
-            update = { playerView ->
-                playerView.resizeMode = when (uiState.aspectRatioMode) {
-                    AspectRatioMode.FIT -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
-                    AspectRatioMode.FILL -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                    AspectRatioMode.ZOOM -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                    AspectRatioMode.STRETCH -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL
-                    AspectRatioMode.RATIO_16_9 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
-                    AspectRatioMode.RATIO_4_3 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
-                }
+            with(sharedTransitionScope) {
+                AndroidView(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .sharedElement(
+                            sharedContentState = rememberSharedContentState(key = "video-$videoId"),
+                            animatedVisibilityScope = animatedVisibilityScope
+                        ),
+                    factory = { ctx ->
+                        PlayerView(ctx).apply {
+                            this.player = player
+                            useController = false
+                            keepScreenOn = true
+                            setShowBuffering(androidx.media3.ui.PlayerView.SHOW_BUFFERING_NEVER)
+                            resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+                            layoutParams = FrameLayout.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.MATCH_PARENT
+                            )
+                        }
+                    },
+                    update = { playerView ->
+                        playerView.resizeMode = when (uiState.aspectRatioMode) {
+                            AspectRatioMode.FIT -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+                            AspectRatioMode.FILL -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                            AspectRatioMode.ZOOM -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                            AspectRatioMode.STRETCH -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL
+                            AspectRatioMode.RATIO_16_9 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
+                            AspectRatioMode.RATIO_4_3 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
+                        }
+                    }
+                )
             }
-        )
+
 
         // Loading Indicator
         if (uiState.isBuffering || uiState.isResolving) {

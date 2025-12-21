@@ -91,6 +91,7 @@ dependencies {
     implementation(libs.play.services.cast.framework)
     implementation(libs.androidx.mediarouter)
     implementation(libs.androidx.media3.cast)
+    implementation(libs.androidx.navigation.compose)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

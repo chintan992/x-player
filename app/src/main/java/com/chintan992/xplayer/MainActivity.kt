@@ -263,6 +263,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(androidx.compose.animation.ExperimentalSharedTransitionApi::class)
 @Composable
 fun NavGraph(
     navController: NavHostController,
@@ -275,39 +276,46 @@ fun NavGraph(
     var currentVideoId by remember { mutableStateOf<String?>(null) }
     var currentSubtitleUri by remember { mutableStateOf<android.net.Uri?>(null) }
 
-    NavHost(navController = navController, startDestination = "library") {
-        composable("library") {
-            LibraryScreen(onVideoClick = { videoItem ->
-                // Store video info for player screen
-                currentVideoTitle = videoItem.name
-                currentVideoUri = videoItem.uri.toString()
-                currentVideoId = videoItem.id.toString()
-                currentSubtitleUri = videoItem.subtitleUri
-                
-                // Set current index in PlaylistManager for seamless navigation reference
-                // (Though PlayerViewModel will recalculate, it's good to sync)
-                val playlist = PlaylistManager.currentPlaylist
-                val index = playlist.indexOfFirst { it.id == videoItem.id }
-                if (index != -1) {
-                    PlaylistManager.currentVideoIndex = index
-                }
+    androidx.compose.animation.SharedTransitionLayout {
+        NavHost(navController = navController, startDestination = "library") {
+            composable("library") {
+                LibraryScreen(
+                    onVideoClick = { videoItem ->
+                        // Store video info for player screen
+                        currentVideoTitle = videoItem.name
+                        currentVideoUri = videoItem.uri.toString()
+                        currentVideoId = videoItem.id.toString()
+                        currentSubtitleUri = videoItem.subtitleUri
+                        
+                        // Set current index in PlaylistManager for seamless navigation reference
+                        val playlist = PlaylistManager.currentPlaylist
+                        val index = playlist.indexOfFirst { it.id == videoItem.id }
+                        if (index != -1) {
+                            PlaylistManager.currentVideoIndex = index
+                        }
 
-                navController.navigate("player")
-            })
-        }
-        composable("player") {
-            VideoPlayerScreen(
-                player = player,
-                videoTitle = currentVideoTitle,
-                videoUri = currentVideoUri,
-                videoId = currentVideoId,
-                subtitleUri = currentSubtitleUri,
-                onBackPressed = {
-                    player.pause()
-                    navController.popBackStack()
-                },
-                onEnterPip = onEnterPip
-            )
+                        navController.navigate("player")
+                    },
+                    animatedVisibilityScope = this,
+                    sharedTransitionScope = this@SharedTransitionLayout
+                )
+            }
+            composable("player") {
+                VideoPlayerScreen(
+                    player = player,
+                    videoTitle = currentVideoTitle,
+                    videoUri = currentVideoUri,
+                    videoId = currentVideoId,
+                    subtitleUri = currentSubtitleUri,
+                    onBackPressed = {
+                        player.pause()
+                        navController.popBackStack()
+                    },
+                    onEnterPip = onEnterPip,
+                    animatedVisibilityScope = this,
+                    sharedTransitionScope = this@SharedTransitionLayout
+                )
+            }
         }
     }
 }

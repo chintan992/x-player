@@ -19,8 +19,10 @@ datastore = "1.1.1"
 castFramework = "21.4.0"
 mediaRouter = "1.6.0"
 appcompat = "1.7.0"
+navigationCompose = "2.8.5"
 
 [libraries]
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }

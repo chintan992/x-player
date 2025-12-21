@@ -73,11 +73,18 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import com.google.accompanist.permissions.rememberPermissionState
 
-@OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
-fun LibraryScreen(onVideoClick: (VideoItem) -> Unit) {
+fun LibraryScreen(
+    onVideoClick: (VideoItem) -> Unit,
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    sharedTransitionScope: SharedTransitionScope
+) {
     val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         Manifest.permission.READ_MEDIA_VIDEO
     } else {
@@ -210,6 +217,8 @@ fun LibraryScreen(onVideoClick: (VideoItem) -> Unit) {
                                 onVideoClick = handleVideoClick,
                                 fieldVisibility = settings.fieldVisibility,
                                 playbackPositions = playbackPositions,
+                                animatedVisibilityScope = animatedVisibilityScope,
+                                sharedTransitionScope = sharedTransitionScope,
                                 modifier = Modifier.padding(paddingValues)
                             )
                             LayoutType.LIST -> VideoList(
@@ -217,6 +226,8 @@ fun LibraryScreen(onVideoClick: (VideoItem) -> Unit) {
                                 onVideoClick = handleVideoClick,
                                 fieldVisibility = settings.fieldVisibility,
                                 playbackPositions = playbackPositions,
+                                animatedVisibilityScope = animatedVisibilityScope,
+                                sharedTransitionScope = sharedTransitionScope,
                                 modifier = Modifier.padding(paddingValues)
                             )
                         }
@@ -382,12 +393,15 @@ private fun FolderListItem(
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun VideoGrid(
     videos: List<VideoItem>,
     onVideoClick: (VideoItem) -> Unit,
     fieldVisibility: FieldVisibility,
     playbackPositions: Map<String, Pair<Long, Long>>,
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    sharedTransitionScope: SharedTransitionScope,
     modifier: Modifier = Modifier
 ) {
     LazyVerticalGrid(
@@ -402,18 +416,23 @@ private fun VideoGrid(
                 video = video,
                 fieldVisibility = fieldVisibility,
                 playbackPosition = positionInfo,
-                onClick = { onVideoClick(video) }
+                onClick = { onVideoClick(video) },
+                animatedVisibilityScope = animatedVisibilityScope,
+                sharedTransitionScope = sharedTransitionScope
             )
         }
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun VideoList(
     videos: List<VideoItem>,
     onVideoClick: (VideoItem) -> Unit,
     fieldVisibility: FieldVisibility,
     playbackPositions: Map<String, Pair<Long, Long>>,
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    sharedTransitionScope: SharedTransitionScope,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -426,18 +445,23 @@ private fun VideoList(
                 video = video,
                 fieldVisibility = fieldVisibility,
                 playbackPosition = positionInfo,
-                onClick = { onVideoClick(video) }
+                onClick = { onVideoClick(video) },
+                animatedVisibilityScope = animatedVisibilityScope,
+                sharedTransitionScope = sharedTransitionScope
             )
         }
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun VideoGridItem(
     video: VideoItem,
     fieldVisibility: FieldVisibility,
     playbackPosition: Pair<Long, Long>?,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    sharedTransitionScope: SharedTransitionScope
 ) {
     val context = LocalContext.current
     
@@ -456,17 +480,23 @@ private fun VideoGridItem(
                         .fillMaxWidth()
                         .aspectRatio(16f / 9f)
                 ) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(context)
-                            .data(video.uri)
-                            .videoFrameMillis(1000)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = video.name,
-                        modifier = Modifier
-                            .fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
+                    with(sharedTransitionScope) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(video.uri)
+                                .videoFrameMillis(1000)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = video.name,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .sharedElement(
+                                    sharedContentState = rememberSharedContentState(key = "video-${video.id}"),
+                                    animatedVisibilityScope = animatedVisibilityScope
+                                ),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
                     
                     // Gradient Overlay for text readability
                      Box(
@@ -537,12 +567,15 @@ private fun VideoGridItem(
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun VideoListItem(
     video: VideoItem,
     fieldVisibility: FieldVisibility,
     playbackPosition: Pair<Long, Long>?,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    sharedTransitionScope: SharedTransitionScope
 ) {
     val context = LocalContext.current
     
@@ -562,16 +595,23 @@ private fun VideoListItem(
                     .size(width = Dimens.VideoListItemTitleWidth, height = Dimens.VideoListItemThumbnailHeight)
                     .clip(RoundedCornerShape(Dimens.CornerSmall))
             ) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(video.uri)
-                        .videoFrameMillis(1000)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = video.name,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
+                with(sharedTransitionScope) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(video.uri)
+                            .videoFrameMillis(1000)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = video.name,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .sharedElement(
+                                sharedContentState = rememberSharedContentState(key = "video-${video.id}"),
+                                animatedVisibilityScope = animatedVisibilityScope
+                            ),
+                        contentScale = ContentScale.Crop
+                    )
+                }
                 
                 // Duration badge on thumbnail
                 if (fieldVisibility.duration) {
