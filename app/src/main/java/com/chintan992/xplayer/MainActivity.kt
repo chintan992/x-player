@@ -59,6 +59,12 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var okHttpClient: OkHttpClient
 
+    private val pipPlayerListener = object : Player.Listener {
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            updatePipActions()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -137,11 +143,11 @@ class MainActivity : ComponentActivity() {
                             updatePipActions()
                         }
                         CONTROL_REWIND -> {
-                            player.seekTo((player.currentPosition - 10000).coerceAtLeast(0))
-                        }
-                        CONTROL_FORWARD -> {
-                            player.seekTo((player.currentPosition + 10000).coerceAtMost(player.duration))
-                        }
+                             player.seekTo((player.currentPosition - PlayerConfig.SEEK_INCREMENT_MS).coerceAtLeast(0))
+                         }
+                         CONTROL_FORWARD -> {
+                             player.seekTo((player.currentPosition + PlayerConfig.SEEK_INCREMENT_MS).coerceAtMost(player.duration))
+                         }
                     }
                 }
             }
@@ -164,14 +170,30 @@ class MainActivity : ComponentActivity() {
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun buildPipParams(): PictureInPictureParams {
+        val videoSize = player.videoSize
+        val aspectRatio = if (videoSize.width > 0 && videoSize.height > 0) {
+            val width = videoSize.width
+            val height = videoSize.height
+            val ratio = width.toFloat() / height
+            
+            if (ratio in PlayerConfig.PIP_ASPECT_RATIO_MIN..PlayerConfig.PIP_ASPECT_RATIO_MAX) {
+                Rational(width, height)
+            } else {
+                Rational(PlayerConfig.PIP_DEFAULT_ASPECT_RATIO_NUMERATOR, PlayerConfig.PIP_DEFAULT_ASPECT_RATIO_DENOMINATOR)
+            }
+        } else {
+            Rational(PlayerConfig.PIP_DEFAULT_ASPECT_RATIO_NUMERATOR, PlayerConfig.PIP_DEFAULT_ASPECT_RATIO_DENOMINATOR)
+        }
+
         val actions = mutableListOf<RemoteAction>()
+        val seekSeconds = PlayerConfig.SEEK_INCREMENT_MS / 1000
         
-        // Rewind 10s
+        // Rewind
         actions.add(
             RemoteAction(
                 Icon.createWithResource(this, android.R.drawable.ic_media_rew),
                 "Rewind",
-                "Rewind 10 seconds",
+                "Rewind $seekSeconds seconds",
                 createPipPendingIntent(CONTROL_REWIND, 0)
             )
         )
@@ -192,18 +214,18 @@ class MainActivity : ComponentActivity() {
             )
         )
         
-        // Forward 10s
+        // Forward
         actions.add(
             RemoteAction(
                 Icon.createWithResource(this, android.R.drawable.ic_media_ff),
                 "Forward",
-                "Forward 10 seconds",
+                "Forward $seekSeconds seconds",
                 createPipPendingIntent(CONTROL_FORWARD, 2)
             )
         )
         
         return PictureInPictureParams.Builder()
-            .setAspectRatio(Rational(16, 9))
+            .setAspectRatio(aspectRatio)
             .setActions(actions)
             .build()
     }
@@ -233,13 +255,15 @@ class MainActivity : ComponentActivity() {
         newConfig: android.content.res.Configuration
     ) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isInPictureInPictureMode) {
-            // Listen for play state changes to update PiP controls
-            player.addListener(object : Player.Listener {
-                override fun onIsPlayingChanged(isPlaying: Boolean) {
-                    updatePipActions()
-                }
-            })
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (isInPictureInPictureMode) {
+                // Listen for play state changes to update PiP controls
+                player.addListener(pipPlayerListener)
+                updatePipActions()
+            } else {
+                // Remove listener when exiting PiP
+                player.removeListener(pipPlayerListener)
+            }
         }
     }
 

@@ -589,6 +589,28 @@ fun VideoPlayerScreen(
             onDismiss = { showSubtitleSearchDialog = false }
         )
     }
+
+    // Error Dialog
+    uiState.resolvingError?.let { error ->
+        AlertDialog(
+            onDismissRequest = { 
+                viewModel.clearError()
+                onBackPressed() // Navigate back on critical error
+            },
+            title = { Text("Error") },
+            text = { Text(error) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.clearError()
+                        onBackPressed()
+                    }
+                ) {
+                    Text("OK")
+                }
+            }
+        )
+    }
 }
 
 private enum class DragMode {

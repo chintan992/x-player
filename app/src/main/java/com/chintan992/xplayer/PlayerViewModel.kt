@@ -555,43 +555,55 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
+    fun clearError() {
+        _uiState.value = _uiState.value.copy(resolvingError = null)
+    }
+
     private fun resolveAndPlay(resolver: com.chintan992.xplayer.resolver.StreamResolver, url: String, subtitleUri: android.net.Uri?) {
         viewModelScope.launch {
-            resolver.resolve(url).collect { resource ->
-                when (resource) {
-                    is com.chintan992.xplayer.resolver.Resource.Loading -> {
-                        _uiState.value = _uiState.value.copy(
-                            isResolving = true,
-                            resolvingError = null
-                        )
-                    }
-                    is com.chintan992.xplayer.resolver.Resource.Success -> {
-                        _uiState.value = _uiState.value.copy(isResolving = false)
-                        val config = resource.data
-                        
-                        // Update headers if present
-                        if (config.headers.isNotEmpty()) {
-                            // Extract host from URL
-                            try {
-                                val host = java.net.URI(config.url).host
-                                if (host != null) {
-                                    headerStorage.addHeaders(host, config.headers)
-                                }
-                            } catch (e: Exception) {
-                                // Ignore invalid URI for header storage purposes
-                            }
+            try {
+                resolver.resolve(url).collect { resource ->
+                    when (resource) {
+                        is com.chintan992.xplayer.resolver.Resource.Loading -> {
+                            _uiState.value = _uiState.value.copy(
+                                isResolving = true,
+                                resolvingError = null
+                            )
                         }
+                        is com.chintan992.xplayer.resolver.Resource.Success -> {
+                            _uiState.value = _uiState.value.copy(isResolving = false)
+                            val config = resource.data
+                            
+                            // Update headers if present
+                            if (config.headers.isNotEmpty()) {
+                                // Extract host from URL
+                                try {
+                                    val host = java.net.URI(config.url).host
+                                    if (host != null) {
+                                        headerStorage.addHeaders(host, config.headers)
+                                    }
+                                } catch (e: Exception) {
+                                    // Ignore invalid URI for header storage purposes
+                                }
+                            }
 
-                        // Play the resolved URL
-                        playDirectly(config.url, _uiState.value.videoTitle, config.headers, subtitleUri)
-                    }
-                    is com.chintan992.xplayer.resolver.Resource.Error -> {
-                        _uiState.value = _uiState.value.copy(
-                            isResolving = false,
-                            resolvingError = resource.message
-                        )
+                            // Play the resolved URL
+                            playDirectly(config.url, _uiState.value.videoTitle, config.headers, subtitleUri)
+                        }
+                        is com.chintan992.xplayer.resolver.Resource.Error -> {
+                            _uiState.value = _uiState.value.copy(
+                                isResolving = false,
+                                resolvingError = resource.message ?: "Unknown error occurred"
+                            )
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _uiState.value = _uiState.value.copy(
+                    isResolving = false,
+                    resolvingError = "Failed to resolve video: ${e.localizedMessage}"
+                )
             }
         }
     }

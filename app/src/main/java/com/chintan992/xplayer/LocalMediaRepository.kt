@@ -72,11 +72,16 @@ class LocalMediaRepository @Inject constructor(
             }
         }
         
+        // Emit visible videos immediately
+        emit(videoList.toList())
+        
         if (includeHidden) {
-            videoList.addAll(getManualHiddenVideos())
+            val hiddenVideos = getManualHiddenVideos()
+            if (hiddenVideos.isNotEmpty()) {
+                val combinedList = videoList + hiddenVideos
+                emit(combinedList)
+            }
         }
-
-        emit(videoList)
     }.flowOn(Dispatchers.IO)
 
     fun getVideoFolders(includeHidden: Boolean = false): Flow<List<VideoFolder>> = flow {
@@ -127,26 +132,33 @@ class LocalMediaRepository @Inject constructor(
             }
         }
         
+        // Helper to convert map to sorted folder list
+        fun mapToFolders(): List<VideoFolder> {
+            return folderMap.map { (path, videos) ->
+                VideoFolder(
+                    path = path,
+                    name = videos.firstOrNull()?.folderName ?: path.substringAfterLast("/"),
+                    videoCount = videos.size,
+                    totalSize = videos.sumOf { it.size },
+                    thumbnailUri = videos.firstOrNull()?.uri
+                )
+            }.sortedBy { it.name.lowercase() }
+        }
+
+        // Emit visible folders immediately
+        emit(mapToFolders())
+        
         // Manual Scan for Hidden
         if (includeHidden) {
             val hiddenVideos = getManualHiddenVideos()
-            for (video in hiddenVideos) {
-                folderMap.getOrPut(video.folderPath) { mutableListOf() }.add(video)
+            if (hiddenVideos.isNotEmpty()) {
+                for (video in hiddenVideos) {
+                    folderMap.getOrPut(video.folderPath) { mutableListOf() }.add(video)
+                }
+                // Emit updated folders
+                emit(mapToFolders())
             }
         }
-
-        // Convert to folder list
-        val folders = folderMap.map { (path, videos) ->
-            VideoFolder(
-                path = path,
-                name = videos.firstOrNull()?.folderName ?: path.substringAfterLast("/"),
-                videoCount = videos.size,
-                totalSize = videos.sumOf { it.size },
-                thumbnailUri = videos.firstOrNull()?.uri
-            )
-        }.sortedBy { it.name.lowercase() }
-
-        emit(folders)
     }.flowOn(Dispatchers.IO)
 
     fun getVideosByFolder(folderPath: String, includeHidden: Boolean = false): Flow<List<VideoItem>> = flow {
@@ -197,6 +209,9 @@ class LocalMediaRepository @Inject constructor(
             }
         }
         
+        // Emit visible videos immediately
+        emit(videoList.toList())
+        
         if (includeHidden) {
             // Check if this specific folder has manual videos
             // Optimization: if we already scan everything in getManualHiddenVideos, we can just filter
@@ -219,18 +234,21 @@ class LocalMediaRepository @Inject constructor(
                         it.name
                     }.toSet()
                     
+                    val newVideos = mutableListOf<VideoItem>()
                     for (v in manualVideos) {
                          if (!existingPaths.contains(v.name)) {
-                             videoList.add(v)
+                             newVideos.add(v)
                          }
+                    }
+                    
+                    if (newVideos.isNotEmpty()) {
+                        emit(videoList + newVideos)
                     }
                 }
             } catch (e: Exception) {
                 // Ignore
             }
         }
-
-        emit(videoList)
     }.flowOn(Dispatchers.IO)
 
     private fun getManualHiddenVideos(): List<VideoItem> {
