@@ -11,6 +11,7 @@ import com.chintan992.xplayer.ui.theme.BrandAccent
 import android.app.Activity
 import android.content.Context
 import android.content.pm.ActivityInfo
+import android.view.ContextThemeWrapper
 import android.media.AudioManager
 import android.provider.Settings
 import android.view.View
@@ -63,6 +64,9 @@ import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material.icons.filled.VolumeDown
 import androidx.compose.material.icons.filled.VolumeMute
 import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -95,8 +99,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.key
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -129,6 +138,7 @@ fun VideoPlayerScreen(
     var showSpeedDialog by remember { mutableStateOf(false) }
     var showAudioDialog by remember { mutableStateOf(false) }
     var showSubtitleDialog by remember { mutableStateOf(false) }
+    var showSubtitleSearchDialog by remember { mutableStateOf(false) }
     val activity = context as? Activity
 
     // Initialize ViewModel with player
@@ -283,6 +293,8 @@ fun VideoPlayerScreen(
         // We use a single surface to handle all gestures, enabling center double-tap and unified drag logic
         var dragMode by remember { mutableStateOf(DragMode.NONE) }
         var startDragX by remember { mutableFloatStateOf(0f) }
+        var doubleTapSide by remember { mutableStateOf<DoubleTapSide?>(null) }
+        var doubleTapKey by remember { mutableIntStateOf(0) }
 
         Box(
             modifier = Modifier
@@ -295,8 +307,12 @@ fun VideoPlayerScreen(
                                 val width = size.width
                                 if (offset.x < width * 0.35f) {
                                     viewModel.seekBackward()
+                                    doubleTapSide = DoubleTapSide.LEFT
+                                    doubleTapKey++
                                 } else if (offset.x > width * 0.65f) {
                                     viewModel.seekForward()
+                                    doubleTapSide = DoubleTapSide.RIGHT
+                                    doubleTapKey++
                                 } else {
                                     viewModel.togglePlayPause()
                                 }
@@ -379,6 +395,16 @@ fun VideoPlayerScreen(
                 current = uiState.seekPosition,
                 duration = uiState.duration
             )
+        }
+        
+        // Double Tap Animation Overlay
+        if (doubleTapSide != null) {
+            key(doubleTapKey) {
+                DoubleTapOverlay(
+                    side = doubleTapSide!!,
+                    onDismiss = { doubleTapSide = null }
+                )
+            }
         }
 
         // Brightness indicator (Left Edge)
@@ -495,7 +521,24 @@ fun VideoPlayerScreen(
                 viewModel.selectSubtitleTrack(it)
                 showSubtitleDialog = false
             },
+            onSearchClick = {
+                showSubtitleDialog = false
+                showSubtitleSearchDialog = true
+            },
             onDismiss = { showSubtitleDialog = false }
+        )
+    }
+
+    if (showSubtitleSearchDialog) {
+        SubtitleSearchDialog(
+            results = uiState.subtitleSearchResults,
+            isSearching = uiState.isSearchingSubtitles,
+            onSearch = { viewModel.searchSubtitles(it) },
+            onDownload = { 
+                viewModel.downloadAndApplySubtitle(it)
+                showSubtitleSearchDialog = false
+            },
+            onDismiss = { showSubtitleSearchDialog = false }
         )
     }
 }
@@ -777,6 +820,10 @@ private fun TopBar(
             )
         }
         
+        GoogleCastButton(
+             modifier = Modifier.padding(end = 4.dp)
+        )
+
         IconButton(onClick = onSettingsToggle) {
             Icon(
                 imageVector = Icons.Default.Settings,
@@ -1047,6 +1094,7 @@ private fun TrackSelectorDialog(
 private fun SubtitleSelectorDialog(
     tracks: List<TrackInfo>,
     onTrackSelected: (TrackInfo?) -> Unit,
+    onSearchClick: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val options = listOf<TrackInfo?>(null) + tracks
@@ -1060,7 +1108,124 @@ private fun SubtitleSelectorDialog(
             track?.let { "${it.name}${if (it.language != null) " (${it.language})" else ""}" } ?: "Off"
         },
         onItemSelected = onTrackSelected,
-        onDismiss = onDismiss
+        onDismiss = onDismiss,
+        footer = {
+            TextButton(
+                onClick = onSearchClick,
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+            ) {
+                Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Search Online")
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SubtitleSearchDialog(
+    results: List<com.chintan992.xplayer.data.SubtitleResult>,
+    isSearching: Boolean,
+    onSearch: (String) -> Unit,
+    onDownload: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var query by remember { mutableStateOf("") }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier.fillMaxWidth().heightIn(max = 500.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Download Subtitles",
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Spacer(Modifier.height(16.dp))
+                
+                // Search Bar
+                androidx.compose.material3.OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    label = { Text("Search movie/show name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = {
+                        IconButton(onClick = { onSearch(query) }) {
+                            Icon(Icons.Default.Search, contentDescription = "Search")
+                        }
+                    },
+                    singleLine = true
+                )
+                
+                Spacer(Modifier.height(16.dp))
+                
+                if (isSearching) {
+                    Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                        androidx.compose.material3.CircularProgressIndicator(color = BrandAccent)
+                    }
+                } else {
+                    LazyColumn(modifier = Modifier.weight(1f, fill = false)) {
+                        items(results) { subtitle ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onDownload(subtitle.downloadUrl) }
+                                    .padding(vertical = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(subtitle.name, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(subtitle.language, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                                }
+                                Icon(Icons.Default.Download, contentDescription = null, tint = BrandAccent)
+                            }
+                            androidx.compose.material3.HorizontalDivider(color = Color.LightGray.copy(alpha = 0.2f))
+                        }
+                        if (results.isEmpty() && query.isNotEmpty()) {
+                            item {
+                                Text(
+                                    "No results found",
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.Gray,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Close")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GoogleCastButton(modifier: Modifier = Modifier) {
+    AndroidView(
+        factory = { context ->
+            val contextWrapper = ContextThemeWrapper(context, androidx.appcompat.R.style.Theme_AppCompat_Light_NoActionBar)
+            androidx.mediarouter.app.MediaRouteButton(contextWrapper).apply {
+                try {
+                    com.google.android.gms.cast.framework.CastButtonFactory.setUpMediaRouteButton(
+                        context.applicationContext,
+                        this
+                    )
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        },
+        modifier = modifier.size(48.dp)
     )
 }
 

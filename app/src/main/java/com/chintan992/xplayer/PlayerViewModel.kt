@@ -65,13 +65,17 @@ data class PlayerUiState(
     val isSpeedOverridden: Boolean = false,
     val isResolving: Boolean = false,
     val resolvingError: String? = null,
-    val isBuffering: Boolean = false
+    val isBuffering: Boolean = false,
+    // Subtitle Search State
+    val subtitleSearchResults: List<com.chintan992.xplayer.data.SubtitleResult> = emptyList(),
+    val isSearchingSubtitles: Boolean = false
 )
 
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
     private val playbackPositionManager: PlaybackPositionManager,
-    private val headerStorage: HeaderStorage
+    private val headerStorage: HeaderStorage,
+    private val subtitleRepository: com.chintan992.xplayer.data.SubtitleRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlayerUiState())
@@ -641,5 +645,50 @@ class PlayerViewModel @Inject constructor(
         }
         
         return mediaItemBuilder.build()
+    }
+
+    fun searchSubtitles(query: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isSearchingSubtitles = true,
+                subtitleSearchResults = emptyList()
+            )
+            subtitleRepository.searchSubtitles(query).collect { results ->
+                _uiState.value = _uiState.value.copy(
+                    isSearchingSubtitles = false,
+                    subtitleSearchResults = results
+                )
+            }
+        }
+    }
+
+    fun downloadAndApplySubtitle(url: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSearchingSubtitles = true)
+            val uri = subtitleRepository.downloadSubtitle(url)
+            _uiState.value = _uiState.value.copy(isSearchingSubtitles = false)
+            
+            if (uri != null) {
+                // Apply the subtitle
+                player?.let { p ->
+                    val currentMediaItem = p.currentMediaItem
+                    if (currentMediaItem != null) {
+                        val videoUri = currentMediaItem.localConfiguration?.uri
+                        val videoTitle = currentMediaItem.mediaMetadata.title?.toString() ?: "Video"
+                        
+                        // Re-create MediaItem with new subtitle
+                        // This involves reloading the video which is not ideal but standard for ExoPlayer runtime subtitle addition
+                        // Or we can use `p.addMediaSource` if using merging media source, but re-preparing is simpler for this structure
+                        val position = p.currentPosition
+                        val newMediaItem = createMediaItem(videoUri.toString(), videoTitle, uri)
+                        
+                        p.setMediaItem(newMediaItem)
+                        p.prepare()
+                        p.seekTo(position)
+                        p.play()
+                    }
+                }
+            }
+        }
     }
 }

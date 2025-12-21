@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -120,8 +121,8 @@ fun LibraryScreen(onVideoClick: (VideoItem) -> Unit) {
                         Text(
                             text = when {
                                 selectedFolder != null -> selectedFolder!!.name
-                                viewMode == ViewMode.FOLDERS -> "Folders"
-                                else -> "All Videos"
+                                viewMode == ViewMode.FOLDERS -> stringResource(R.string.title_folders)
+                                else -> stringResource(R.string.title_all_videos)
                             },
                             fontWeight = FontWeight.SemiBold
                         )
@@ -131,7 +132,7 @@ fun LibraryScreen(onVideoClick: (VideoItem) -> Unit) {
                             IconButton(onClick = { viewModel.clearSelectedFolder() }) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Back"
+                                    contentDescription = stringResource(R.string.action_back)
                                 )
                             }
                         }
@@ -141,7 +142,7 @@ fun LibraryScreen(onVideoClick: (VideoItem) -> Unit) {
                         IconButton(onClick = { viewModel.showSettings() }) {
                             Icon(
                                 imageVector = Icons.Outlined.Settings,
-                                contentDescription = "Settings"
+                                contentDescription = stringResource(R.string.action_settings)
                             )
                         }
                         if (selectedFolder == null) {
@@ -152,9 +153,9 @@ fun LibraryScreen(onVideoClick: (VideoItem) -> Unit) {
                                     else 
                                         Icons.Outlined.VideoLibrary,
                                     contentDescription = if (viewMode == ViewMode.ALL_VIDEOS) 
-                                        "Switch to Folder View" 
+                                        stringResource(R.string.action_switch_folder_view) 
                                     else 
-                                        "Switch to All Videos"
+                                        stringResource(R.string.action_switch_all_videos)
                                 )
                             }
                         }
@@ -175,7 +176,7 @@ fun LibraryScreen(onVideoClick: (VideoItem) -> Unit) {
                     // Show folder list (matching reference design)
                     if (folders.isEmpty()) {
                         EmptyState(
-                            message = "No folders found",
+                            message = stringResource(R.string.empty_folders),
                             modifier = Modifier.padding(paddingValues)
                         )
                     } else {
@@ -191,7 +192,7 @@ fun LibraryScreen(onVideoClick: (VideoItem) -> Unit) {
                     // Show videos (all videos or videos in selected folder)
                     if (videos.isEmpty()) {
                         EmptyState(
-                            message = if (selectedFolder != null) "No videos in this folder" else "No videos found",
+                            message = if (selectedFolder != null) stringResource(R.string.empty_videos_folder) else stringResource(R.string.empty_videos),
                             modifier = Modifier.padding(paddingValues)
                         )
                     } else {
@@ -240,7 +241,7 @@ fun LibraryScreen(onVideoClick: (VideoItem) -> Unit) {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Video Library") },
+                    title = { Text(stringResource(R.string.title_video_library)) },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.background,
                         titleContentColor = MaterialTheme.colorScheme.onBackground
@@ -680,7 +681,7 @@ private fun EmptyState(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            text = "Videos from your device will appear here",
+            text = stringResource(R.string.empty_state_message),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 8.dp)
@@ -706,17 +707,17 @@ private fun PermissionRequest(
         )
         Spacer(modifier = Modifier.height(Dimens.SpacingLarge))
         Text(
-            text = "Permission Required",
+            text = stringResource(R.string.permission_required),
             style = MaterialTheme.typography.headlineSmall
         )
         Text(
-            text = "Grant storage access to view your videos",
+            text = stringResource(R.string.permission_rationale),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = Dimens.SpacingMedium, bottom = Dimens.SpacingSection)
         )
         Button(onClick = onRequestPermission) {
-            Text("Grant Permission")
+            Text(stringResource(R.string.permission_grant))
         }
     }
 }
@@ -755,7 +756,7 @@ private fun FolderViewSettingsDialog(
     onDismiss: () -> Unit
 ) {
     CustomBaseDialog(
-        title = "View Settings",
+        title = stringResource(R.string.dialog_view_settings),
         onDismiss = onDismiss
     ) {
         Column(
@@ -765,7 +766,7 @@ private fun FolderViewSettingsDialog(
             // Layout & Sort Group
             Column {
                 Text(
-                    text = "Display",
+                    text = stringResource(R.string.settings_display),
                     style = MaterialTheme.typography.labelLarge,
                     color = Color.White,
                     fontWeight = FontWeight.Bold

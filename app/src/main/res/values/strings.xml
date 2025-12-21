@@ -1,3 +1,19 @@
 <resources>
     <string name="app_name">X Player</string>
+    <string name="title_folders">Folders</string>
+    <string name="title_all_videos">All Videos</string>
+    <string name="action_back">Back</string>
+    <string name="action_settings">Settings</string>
+    <string name="action_switch_folder_view">Switch to Folder View</string>
+    <string name="action_switch_all_videos">Switch to All Videos</string>
+    <string name="empty_folders">No folders found</string>
+    <string name="empty_videos_folder">No videos in this folder</string>
+    <string name="empty_videos">No videos found</string>
+    <string name="empty_state_message">Videos from your device will appear here</string>
+    <string name="title_video_library">Video Library</string>
+    <string name="permission_required">Permission Required</string>
+    <string name="permission_rationale">Grant storage access to view your videos</string>
+    <string name="permission_grant">Grant Permission</string>
+    <string name="dialog_view_settings">View Settings</string>
+    <string name="settings_display">Display</string>
 </resources>

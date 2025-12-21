@@ -32,6 +32,9 @@ import androidx.media3.exoplayer.ExoPlayer
 import com.chintan992.xplayer.ui.theme.XPlayerTheme
 import dagger.hilt.android.AndroidEntryPoint
 import okhttp3.OkHttpClient
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -66,6 +69,21 @@ class MainActivity : ComponentActivity() {
         // Register PiP broadcast receiver
         registerPipReceiver()
         
+        // Start PlaybackService to keep MediaSession active
+        try {
+            val intent = Intent(this, PlaybackService::class.java)
+            startService(intent)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        // Initialize CastContext
+        try {
+            com.google.android.gms.cast.framework.CastContext.getSharedInstance(this)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        
         setContent {
             XPlayerTheme {
                 val navController = rememberNavController()
@@ -84,7 +102,7 @@ class MainActivity : ComponentActivity() {
         headerStorage.addHeaders(host, headers)
 
         // Run network request in background
-        Thread {
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val request = okhttp3.Request.Builder()
                     .url("https://httpbin.org/get")
@@ -106,7 +124,7 @@ class MainActivity : ComponentActivity() {
                 android.util.Log.e("HeaderVerification", "ERROR: ${e.message}")
                 e.printStackTrace()
             }
-        }.start()
+        }
     }
 
     private fun registerPipReceiver() {
