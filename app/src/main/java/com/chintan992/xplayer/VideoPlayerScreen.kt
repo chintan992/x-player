@@ -4,6 +4,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import com.chintan992.xplayer.ui.theme.BrandAccent
@@ -81,6 +82,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.automirrored.outlined.*
+import androidx.compose.material.icons.rounded.WbSunny
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -106,7 +109,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.graphics.vector.ImageVector
+
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -437,9 +440,12 @@ fun VideoPlayerScreen(
             visible = uiState.showBrightnessIndicator,
             enter = fadeIn(),
             exit = fadeOut(),
-            modifier = Modifier.align(Alignment.CenterStart).padding(start = 32.dp)
+            modifier = Modifier.align(Alignment.CenterStart).padding(start = 48.dp)
         ) {
-            SlimIndicator(value = uiState.brightness)
+            GestureIndicator(
+                value = uiState.brightness,
+                icon = Icons.Rounded.WbSunny
+            )
         }
 
         // Volume indicator (Right Edge)
@@ -447,9 +453,12 @@ fun VideoPlayerScreen(
             visible = uiState.showVolumeIndicator,
             enter = fadeIn(),
             exit = fadeOut(),
-            modifier = Modifier.align(Alignment.CenterEnd).padding(end = 32.dp)
+            modifier = Modifier.align(Alignment.CenterEnd).padding(end = 48.dp)
         ) {
-            SlimIndicator(value = uiState.volume)
+            GestureIndicator(
+                value = uiState.volume,
+                icon = Icons.AutoMirrored.Rounded.VolumeUp
+            )
         }
 
         // Speed Override Indicator
@@ -491,22 +500,36 @@ fun VideoPlayerScreen(
             if (uiState.isLocked) {
                 LockedOverlay(onUnlock = { viewModel.toggleLock() })
             } else {
+                val onPlayPause = remember(viewModel) { { viewModel.togglePlayPause() } }
+                val onSeek = remember(viewModel) { { pos: Long -> viewModel.seekTo(pos) } }
+                val onSeekForward = remember(viewModel) { { viewModel.seekForward() } }
+                val onSeekBackward = remember(viewModel) { { viewModel.seekBackward() } }
+                val onNext = remember(viewModel) { { viewModel.seekToNext() } }
+                val onPrevious = remember(viewModel) { { viewModel.seekToPrevious() } }
+                val onSpeedClick = remember { { showSpeedDialog = true } }
+                val onDecoderClick = remember(viewModel) { { viewModel.cycleDecoderMode() } }
+                val onAudioClick = remember { { showAudioDialog = true } }
+                val onSubtitleClick = remember { { showSubtitleDialog = true } }
+                val onLockClick = remember(viewModel) { { viewModel.toggleLock() } }
+                val onAspectRatioClick = remember(viewModel) { { viewModel.cycleAspectRatio() } }
+                val onOrientationClick = remember(viewModel) { { viewModel.toggleOrientation() } }
+
                 ControlsOverlay(
                     uiState = uiState,
                     onBackPressed = onBackPressed,
-                    onPlayPause = { viewModel.togglePlayPause() },
-                    onSeek = { viewModel.seekTo(it) },
-                    onSeekForward = { viewModel.seekForward() },
-                    onSeekBackward = { viewModel.seekBackward() },
-                    onNext = { viewModel.seekToNext() },
-                    onPrevious = { viewModel.seekToPrevious() },
-                    onSpeedClick = { showSpeedDialog = true },
-                    onDecoderClick = { viewModel.cycleDecoderMode() },
-                    onAudioClick = { showAudioDialog = true },
-                    onSubtitleClick = { showSubtitleDialog = true },
-                    onLockClick = { viewModel.toggleLock() },
-                    onAspectRatioClick = { viewModel.cycleAspectRatio() },
-                    onOrientationClick = { viewModel.toggleOrientation() },
+                    onPlayPause = onPlayPause,
+                    onSeek = onSeek,
+                    onSeekForward = onSeekForward,
+                    onSeekBackward = onSeekBackward,
+                    onNext = onNext,
+                    onPrevious = onPrevious,
+                    onSpeedClick = onSpeedClick,
+                    onDecoderClick = onDecoderClick,
+                    onAudioClick = onAudioClick,
+                    onSubtitleClick = onSubtitleClick,
+                    onLockClick = onLockClick,
+                    onAspectRatioClick = onAspectRatioClick,
+                    onOrientationClick = onOrientationClick,
                     onPipClick = onEnterPip
                 )
             }
@@ -595,24 +618,44 @@ private fun SeekOverlay(
 
 
 @Composable
-private fun SlimIndicator(
+private fun GestureIndicator(
     value: Float,
+    icon: ImageVector,
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
-            .width(6.dp)
-            .height(200.dp)
-            .clip(RoundedCornerShape(3.dp))
-            .background(Color.Black.copy(alpha = 0.5f))
+            .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
+            .padding(16.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(value.coerceIn(0f, 1f))
-                .align(Alignment.BottomCenter)
-                .background(Color.White)
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(32.dp)
+            )
+            
+            // Vertical Progress Bar
+            Box(
+                modifier = Modifier
+                    .width(12.dp)
+                    .height(150.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(Color.White.copy(alpha = 0.2f))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(value.coerceIn(0f, 1f))
+                        .align(Alignment.BottomCenter)
+                        .background(BrandAccent)
+                )
+            }
+        }
     }
 }
 

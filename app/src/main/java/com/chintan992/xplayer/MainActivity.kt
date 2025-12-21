@@ -301,20 +301,23 @@ fun NavGraph(
                 )
             }
             composable("player") {
-                VideoPlayerScreen(
-                    player = player,
-                    videoTitle = currentVideoTitle,
-                    videoUri = currentVideoUri,
-                    videoId = currentVideoId,
-                    subtitleUri = currentSubtitleUri,
-                    onBackPressed = {
-                        player.pause()
-                        navController.popBackStack()
-                    },
-                    onEnterPip = onEnterPip,
-                    animatedVisibilityScope = this,
-                    sharedTransitionScope = this@SharedTransitionLayout
-                )
+                // Force Cinema Theme (Dark Mode, No Dynamic Color) for Player
+                XPlayerTheme(darkTheme = true, dynamicColor = false) {
+                    VideoPlayerScreen(
+                        player = player,
+                        videoTitle = currentVideoTitle,
+                        videoUri = currentVideoUri,
+                        videoId = currentVideoId,
+                        subtitleUri = currentSubtitleUri,
+                        onBackPressed = {
+                            player.pause()
+                            navController.popBackStack()
+                        },
+                        onEnterPip = onEnterPip,
+                        animatedVisibilityScope = this,
+                        sharedTransitionScope = this@SharedTransitionLayout
+                    )
+                }
             }
         }
     }
