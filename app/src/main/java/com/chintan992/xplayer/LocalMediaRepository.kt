@@ -3,6 +3,8 @@ package com.chintan992.xplayer
 import android.content.ContentUris
 import android.content.Context
 import android.provider.MediaStore
+import com.chintan992.xplayer.data.local.FileScanner
+import com.chintan992.xplayer.data.local.SubtitleFinder
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -11,7 +13,9 @@ import kotlinx.coroutines.flow.flowOn
 import javax.inject.Inject
 
 class LocalMediaRepository @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val fileScanner: FileScanner,
+    private val subtitleFinder: SubtitleFinder
 ) {
     
     private val validMimeTypes = arrayOf(
@@ -66,7 +70,7 @@ class LocalMediaRepository @Inject constructor(
                 val uri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
                 
                 val folderPath = data.substringBeforeLast("/", "")
-                val subtitleUri = findSubtitleForVideo(data)
+                val subtitleUri = subtitleFinder.findSubtitleForVideo(data)
 
                 videoList.add(VideoItem(id, uri, name, duration, size, dateModified, folderPath, folderName, subtitleUri))
             }
@@ -125,7 +129,7 @@ class LocalMediaRepository @Inject constructor(
                 val folderName = it.getString(bucketColumn) ?: "Unknown"
                 val uri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
                 val folderPath = data.substringBeforeLast("/", "")
-                val subtitleUri = findSubtitleForVideo(data)
+                val subtitleUri = subtitleFinder.findSubtitleForVideo(data)
 
                 val video = VideoItem(id, uri, name, duration, size, dateModified, folderPath, folderName, subtitleUri)
                 folderMap.getOrPut(folderPath) { mutableListOf() }.add(video)
@@ -164,7 +168,6 @@ class LocalMediaRepository @Inject constructor(
     fun getVideosByFolder(folderPath: String, includeHidden: Boolean = false): Flow<List<VideoItem>> = flow {
         val videoList = mutableListOf<VideoItem>()
         
-        // If it's a hidden folder, MediaStore likely returns nothing, but we check anyway
         val selection = "$mimeTypeSelection AND ${MediaStore.Video.Media.DATA} LIKE ?"
         val selectionArgs = validMimeTypes + "$folderPath/%"
 
@@ -203,7 +206,7 @@ class LocalMediaRepository @Inject constructor(
                 val folderName = it.getString(bucketColumn) ?: "Unknown"
                 val uri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
                 val videoFolderPath = data.substringBeforeLast("/", "")
-                val subtitleUri = findSubtitleForVideo(data)
+                val subtitleUri = subtitleFinder.findSubtitleForVideo(data)
 
                 videoList.add(VideoItem(id, uri, name, duration, size, dateModified, videoFolderPath, folderName, subtitleUri))
             }
@@ -213,26 +216,11 @@ class LocalMediaRepository @Inject constructor(
         emit(videoList.toList())
         
         if (includeHidden) {
-            // Check if this specific folder has manual videos
-            // Optimization: if we already scan everything in getManualHiddenVideos, we can just filter
-            // But doing a full scan for one folder is inefficient?
-            // "getManualHiddenVideos" scans ROOT hidden folders.
-            // If folderPath is inside a hidden folder, or IS a hidden folder, we need to scan IT.
-            
-            // If folderPath starts with ".", it's hidden (relative to storage root usually, or just name)
-            // We'll just scan the directory using File API
             try {
                 val dir = java.io.File(folderPath)
                 if (dir.exists() && dir.isDirectory) {
-                    val manualVideos = scanDirectoryForVideos(dir, recursive = false) // user is asking for this folder content
-                    // Merge, avoiding duplicates (by path/URI)
-                    val existingPaths = videoList.map { 
-                        // URI -> Path resolution is hard without context, but we can assume ID based uniqueness or Data path
-                        // For MediaStore items, we don't easily have 'Data' unless we kept it.
-                        // We do have 'folderPath' but not file path in VideoItem
-                        // Let's rely on name? VideoItem has `name`.
-                        it.name
-                    }.toSet()
+                    val manualVideos = fileScanner.scanDirectoryForVideos(dir, recursive = false)
+                    val existingPaths = videoList.map { it.name }.toSet()
                     
                     val newVideos = mutableListOf<VideoItem>()
                     for (v in manualVideos) {
@@ -251,7 +239,7 @@ class LocalMediaRepository @Inject constructor(
         }
     }.flowOn(Dispatchers.IO)
 
-    private fun getManualHiddenVideos(): List<VideoItem> {
+    fun getManualHiddenVideos(): List<VideoItem> {
         val hiddenVideos = mutableListOf<VideoItem>()
         try {
             val root = android.os.Environment.getExternalStorageDirectory()
@@ -260,7 +248,7 @@ class LocalMediaRepository @Inject constructor(
             } ?: emptyArray()
 
             for (dir in dirs) {
-                hiddenVideos.addAll(scanDirectoryForVideos(dir, recursive = true))
+                hiddenVideos.addAll(fileScanner.scanDirectoryForVideos(dir, recursive = true))
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -268,64 +256,153 @@ class LocalMediaRepository @Inject constructor(
         return hiddenVideos
     }
     
-    private fun scanDirectoryForVideos(dir: java.io.File, recursive: Boolean): List<VideoItem> {
-        val videos = mutableListOf<VideoItem>()
-        val files = dir.listFiles() ?: return emptyList()
-        
-        for (file in files) {
-            if (file.isDirectory) {
-                if (recursive) {
-                    videos.addAll(scanDirectoryForVideos(file, true))
-                }
-            } else {
-                if (isValidVideoFile(file.name)) {
-                    val uri = android.net.Uri.fromFile(file)
-                    val name = file.name
-                    val parent = file.parentFile
-                    val folderName = parent?.name ?: "Unknown"
-                    val folderPath = parent?.absolutePath ?: ""
-                    val size = file.length()
-                    val modified = file.lastModified() / 1000
-                    
-                    // Duration not easily available without extracting, set to 0
-                    videos.add(VideoItem(
-                        id = file.hashCode().toLong(), // Synthetic ID
-                        uri = uri,
-                        name = name,
-                        duration = 0L,
-                        size = size,
-                        dateModified = modified,
-                        folderPath = folderPath,
-                        folderName = folderName,
-                        subtitleUri = findSubtitleForVideo(file.absolutePath)
-                    ))
-                }
-            }
-        }
-        return videos
-    }
-    
-    private fun isValidVideoFile(name: String): Boolean {
-        val extensions = arrayOf(".mp4", ".mkv", ".webm", ".avi", ".mov", ".3gp")
-        return extensions.any { name.endsWith(it, ignoreCase = true) }
-    }
+    // Extracted helper methods removed - Keeping this comment as anchor
 
-    private fun findSubtitleForVideo(videoPath: String): android.net.Uri? {
+    // File Operations
+    suspend fun deleteVideo(video: VideoItem): Boolean = kotlinx.coroutines.withContext(Dispatchers.IO) {
         try {
-            val videoFile = java.io.File(videoPath)
-            val parentFile = videoFile.parentFile ?: return null
-            val baseName = videoFile.nameWithoutExtension
-            
-            val extensions = arrayOf("srt", "ass", "ssa", "vtt")
-            for (ext in extensions) {
-                val subtitleFile = java.io.File(parentFile, "$baseName.$ext")
-                if (subtitleFile.exists()) {
-                    return android.net.Uri.fromFile(subtitleFile)
+            val file = java.io.File(video.folderPath, video.name)
+            if (file.exists() && file.delete()) {
+                // If file delete worked, try to clean up MediaStore
+                try {
+                    context.contentResolver.delete(video.uri, null, null)
+                } catch (e: Exception) {
+                    // Ignore, maybe not in MediaStore or already gone
                 }
+                return@withContext true
             }
+            // Fallback to MediaStore delete
+            try {
+                if (context.contentResolver.delete(video.uri, null, null) > 0) return@withContext true
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            return@withContext false
         } catch (e: Exception) {
             e.printStackTrace()
+            false
         }
-        return null
+    }
+
+    suspend fun deleteFolder(folder: VideoFolder): Boolean = kotlinx.coroutines.withContext(Dispatchers.IO) {
+        try {
+            val dir = java.io.File(folder.path)
+            if (dir.exists() && dir.isDirectory) {
+                // Recursive delete
+                return@withContext dir.deleteRecursively()
+            }
+            false
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    suspend fun renameVideo(video: VideoItem, newName: String): Boolean = kotlinx.coroutines.withContext(Dispatchers.IO) {
+        try {
+            val sourceFile = java.io.File(video.folderPath, video.name)
+            val destFile = java.io.File(video.folderPath, newName)
+            
+            if (sourceFile.renameTo(destFile)) {
+                 // Scan new file to MediaStore
+                android.media.MediaScannerConnection.scanFile(context, arrayOf(destFile.absolutePath), null, null)
+                // Remove old from MediaStore (optional, scanner might handle update but delete ensures no ghost)
+                // context.contentResolver.delete(video.uri, null, null) 
+                return@withContext true
+            }
+            false
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    suspend fun renameFolder(folder: VideoFolder, newName: String): Boolean = kotlinx.coroutines.withContext(Dispatchers.IO) {
+         try {
+            val sourceDir = java.io.File(folder.path)
+            val parent = sourceDir.parentFile ?: return@withContext false
+            val destDir = java.io.File(parent, newName)
+            
+            if (sourceDir.renameTo(destDir)) {
+                 // Rescan is tricky for folders, might need to scan all files inside. 
+                 // For now just return true and let app refresh
+                return@withContext true
+            }
+            false
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+    
+    suspend fun moveVideo(video: VideoItem, targetFolderPath: String): Boolean = kotlinx.coroutines.withContext(Dispatchers.IO) {
+        try {
+             val sourceFile = java.io.File(video.folderPath, video.name)
+             val destFile = java.io.File(targetFolderPath, video.name)
+             
+             if (sourceFile.renameTo(destFile)) {
+                 android.media.MediaScannerConnection.scanFile(context, arrayOf(destFile.absolutePath), null, null)
+                 return@withContext true
+             }
+             // Cross-filesystem move fallback (copy + delete)
+             if (copyVideo(video, targetFolderPath)) {
+                 return@withContext deleteVideo(video)
+             }
+             false
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    suspend fun copyVideo(video: VideoItem, targetFolderPath: String): Boolean = kotlinx.coroutines.withContext(Dispatchers.IO) {
+        try {
+            val destFile = java.io.File(targetFolderPath, video.name)
+            
+            // Check if destination exists and handle collision
+            if (destFile.exists()) {
+                // For now, if same path return true, if different file with same name return false or overwrite? 
+                // Let's assume overwrite for this implementation but maybe we should fail safely.
+                if (destFile.absolutePath == video.folderPath + "/" + video.name) return@withContext true
+            }
+
+            // Use ContentResolver to open input stream - reliable for MediaStore items
+            val inputStream = context.contentResolver.openInputStream(video.uri) ?: return@withContext false
+            
+            inputStream.use { input ->
+                java.io.FileOutputStream(destFile).use { output ->
+                    val buffer = ByteArray(8 * 1024) // 8KB buffer
+                    var bytesRead: Int
+                    while (input.read(buffer).also { bytesRead = it } != -1) {
+                        output.write(buffer, 0, bytesRead)
+                    }
+                    output.flush()
+                    // Force write to disk
+                    output.fd.sync()
+                }
+            }
+
+            // Verify size matches (simple integrity check)
+            // Note: video.size might not be perfectly reliable if MediaStore is stale, but it's a good first check.
+            // Better to check source File length if accessible, but we are using Uri.
+            // Let's rely on the fact we copied stream to completion without exception.
+            // However, we can try to get length from PFD if possible.
+            try {
+                 context.contentResolver.openFileDescriptor(video.uri, "r")?.use { pfd ->
+                     if (pfd.statSize != destFile.length()) {
+                         destFile.delete()
+                         return@withContext false
+                     }
+                 }
+            } catch (e: Exception) {
+                // If we can't check size, assume it worked if no IO exception occurred above
+            }
+
+            android.media.MediaScannerConnection.scanFile(context, arrayOf(destFile.absolutePath), null, null)
+            return@withContext true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return@withContext false
+        }
     }
 }

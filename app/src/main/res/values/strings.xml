@@ -16,4 +16,10 @@
     <string name="permission_grant">Grant Permission</string>
     <string name="dialog_view_settings">View Settings</string>
     <string name="settings_display">Display</string>
+    <string name="action_rename">Rename</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_move">Move</string>
+    <string name="action_copy">Copy</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="delete_confirmation">Are you sure you want to delete %1$d items?</string>
 </resources>

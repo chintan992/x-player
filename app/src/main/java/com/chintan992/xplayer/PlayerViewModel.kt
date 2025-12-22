@@ -5,9 +5,10 @@ import androidx.lifecycle.viewModelScope
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
-import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.exoplayer.ExoPlayer
+import com.chintan992.xplayer.player.logic.GestureHandler
+import com.chintan992.xplayer.player.logic.TrackManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -75,7 +76,8 @@ data class PlayerUiState(
 class PlayerViewModel @Inject constructor(
     private val playbackPositionManager: PlaybackPositionManager,
     private val headerStorage: HeaderStorage,
-    private val subtitleRepository: com.chintan992.xplayer.data.SubtitleRepository
+    private val trackManager: TrackManager,
+    private val gestureHandler: GestureHandler
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlayerUiState())
@@ -175,37 +177,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     private fun updateTrackInfo() {
-        val p = player ?: return
-        val tracks = p.currentTracks
-        
-        val audioTracks = mutableListOf<TrackInfo>()
-        val subtitleTracks = mutableListOf<TrackInfo>()
-
-        tracks.groups.forEachIndexed { groupIndex, group ->
-            val trackType = group.type
-            for (trackIndex in 0 until group.length) {
-                val format = group.getTrackFormat(trackIndex)
-                val isSelected = group.isTrackSelected(trackIndex)
-                
-                val trackName = format.label 
-                    ?: format.language?.uppercase() 
-                    ?: "Track ${trackIndex + 1}"
-                
-                val trackInfo = TrackInfo(
-                    index = trackIndex,
-                    groupIndex = groupIndex,
-                    name = trackName,
-                    language = format.language,
-                    isSelected = isSelected
-                )
-
-                when (trackType) {
-                    C.TRACK_TYPE_AUDIO -> audioTracks.add(trackInfo)
-                    C.TRACK_TYPE_TEXT -> subtitleTracks.add(trackInfo)
-                }
-            }
-        }
-
+        val (audioTracks, subtitleTracks) = trackManager.getTracks(player)
         _uiState.value = _uiState.value.copy(
             audioTracks = audioTracks,
             subtitleTracks = subtitleTracks
@@ -283,43 +255,12 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun selectAudioTrack(trackInfo: TrackInfo) {
-        val p = player ?: return
-        val tracks = p.currentTracks
-        
-        if (trackInfo.groupIndex < tracks.groups.size) {
-            val group = tracks.groups[trackInfo.groupIndex]
-            val override = TrackSelectionOverride(group.mediaTrackGroup, trackInfo.index)
-            
-            p.trackSelectionParameters = p.trackSelectionParameters
-                .buildUpon()
-                .setOverrideForType(override)
-                .build()
-        }
+        trackManager.selectAudioTrack(player, trackInfo)
         updateTrackInfo()
     }
 
     fun selectSubtitleTrack(trackInfo: TrackInfo?) {
-        val p = player ?: return
-        
-        if (trackInfo == null) {
-            // Disable subtitles
-            p.trackSelectionParameters = p.trackSelectionParameters
-                .buildUpon()
-                .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
-                .build()
-        } else {
-            val tracks = p.currentTracks
-            if (trackInfo.groupIndex < tracks.groups.size) {
-                val group = tracks.groups[trackInfo.groupIndex]
-                val override = TrackSelectionOverride(group.mediaTrackGroup, trackInfo.index)
-                
-                p.trackSelectionParameters = p.trackSelectionParameters
-                    .buildUpon()
-                    .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
-                    .setOverrideForType(override)
-                    .build()
-            }
-        }
+        trackManager.selectSubtitleTrack(player, trackInfo)
         updateTrackInfo()
     }
 
@@ -452,9 +393,9 @@ class PlayerViewModel @Inject constructor(
         positionUpdateJob?.cancel()
     }
 
-    // Gesture functions
+    // Gesture functions delegated to GestureHandler
     fun updateBrightness(delta: Float) {
-        val newBrightness = (_uiState.value.brightness + delta).coerceIn(0f, 1f)
+        val newBrightness = gestureHandler.calculateNewLevel(_uiState.value.brightness, delta)
         _uiState.value = _uiState.value.copy(
             brightness = newBrightness,
             showBrightnessIndicator = true
@@ -462,12 +403,12 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun updateVolume(delta: Float) {
-        val newVolume = (_uiState.value.volume + delta).coerceIn(0f, 1f)
+        val newVolume = gestureHandler.calculateNewLevel(_uiState.value.volume, delta)
         _uiState.value = _uiState.value.copy(
             volume = newVolume,
             showVolumeIndicator = true
         )
-        player?.volume = newVolume
+        gestureHandler.applyVolume(player, newVolume)
     }
 
     fun hideBrightnessIndicator() {
@@ -672,7 +613,7 @@ class PlayerViewModel @Inject constructor(
                 isSearchingSubtitles = true,
                 subtitleSearchResults = emptyList()
             )
-            subtitleRepository.searchSubtitles(query).collect { results ->
+            trackManager.searchSubtitles(query).collect { results ->
                 _uiState.value = _uiState.value.copy(
                     isSearchingSubtitles = false,
                     subtitleSearchResults = results
@@ -684,7 +625,7 @@ class PlayerViewModel @Inject constructor(
     fun downloadAndApplySubtitle(url: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSearchingSubtitles = true)
-            val uri = subtitleRepository.downloadSubtitle(url)
+            val uri = trackManager.downloadSubtitle(url)
             _uiState.value = _uiState.value.copy(isSearchingSubtitles = false)
             
             if (uri != null) {
@@ -696,8 +637,6 @@ class PlayerViewModel @Inject constructor(
                         val videoTitle = currentMediaItem.mediaMetadata.title?.toString() ?: "Video"
                         
                         // Re-create MediaItem with new subtitle
-                        // This involves reloading the video which is not ideal but standard for ExoPlayer runtime subtitle addition
-                        // Or we can use `p.addMediaSource` if using merging media source, but re-preparing is simpler for this structure
                         val position = p.currentPosition
                         val newMediaItem = createMediaItem(videoUri.toString(), videoTitle, uri)
                         
