@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import com.chintan992.xplayer.ui.theme.BrandAccent
+import com.chintan992.xplayer.ui.theme.CinemaTheme
 import com.chintan992.xplayer.player.ui.*
 
 import androidx.compose.runtime.rememberCoroutineScope
@@ -349,11 +350,12 @@ fun VideoPlayerScreen(
         }
     }
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color.Black)
-    ) {
+    CinemaTheme {
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(Color.Black)
+        ) {
             with(sharedTransitionScope) {
                 AndroidView(
                     modifier = Modifier
@@ -646,6 +648,8 @@ fun VideoPlayerScreen(
             }
         }
     }
+    }
+
 
 
 
@@ -721,7 +725,8 @@ fun VideoPlayerScreen(
                 }
             }
         )
-    }
+        
+}
 }
 
 private enum class DragMode {

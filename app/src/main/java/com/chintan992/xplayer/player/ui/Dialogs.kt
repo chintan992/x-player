@@ -42,10 +42,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.chintan992.xplayer.AspectRatioMode
-import com.chintan992.xplayer.CustomSelectionDialog
+import com.chintan992.xplayer.CustomSelectionSheet
 import com.chintan992.xplayer.TrackInfo
 import com.chintan992.xplayer.data.SubtitleResult
 import com.chintan992.xplayer.ui.theme.BrandAccent
@@ -58,30 +60,13 @@ fun SpeedSelectorDialog(
 ) {
     val speeds = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f)
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Playback Speed") },
-        text = {
-            LazyColumn {
-                items(speeds) { speed ->
-                    TextButton(
-                        onClick = { onSpeedSelected(speed) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "${speed}x",
-                            fontWeight = if (speed == currentSpeed) FontWeight.Bold else FontWeight.Normal,
-                            color = if (speed == currentSpeed) BrandAccent else MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
+    CustomSelectionSheet(
+        title = "Playback Speed",
+        items = speeds,
+        selectedItem = currentSpeed,
+        itemLabel = { "${it}x" },
+        onItemSelected = onSpeedSelected,
+        onDismiss = onDismiss
     )
 }
 
@@ -95,7 +80,7 @@ fun TrackSelectorDialog(
     // Find currently selected track
     val selectedTrack = tracks.find { it.isSelected }
 
-    CustomSelectionDialog(
+    CustomSelectionSheet(
         title = title,
         items = tracks,
         selectedItem = selectedTrack,
@@ -115,7 +100,7 @@ fun SubtitleSelectorDialog(
     val options = listOf<TrackInfo?>(null) + tracks
     val selectedTrack = tracks.find { it.isSelected } ?: options.first()
 
-    CustomSelectionDialog(
+    CustomSelectionSheet(
         title = "Subtitles",
         items = options,
         selectedItem = selectedTrack,
@@ -131,7 +116,7 @@ fun SubtitleSelectorDialog(
             ) {
                 Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Search Online")
+                Text("Search Online", color = BrandAccent)
             }
         }
     )
@@ -146,77 +131,80 @@ fun SubtitleSearchDialog(
     onDownload: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var query by remember { mutableStateOf("") }
 
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            modifier = Modifier.fillMaxWidth().heightIn(max = 500.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        tonalElevation = 0.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 32.dp) // Add padding for navigation bar
+                .heightIn(min = 300.dp, max = 600.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "Download Subtitles",
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Spacer(Modifier.height(16.dp))
-                
-                // Search Bar
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    label = { Text("Search movie/show name") },
-                    modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = {
-                        IconButton(onClick = { onSearch(query) }) {
-                            Icon(Icons.Default.Search, contentDescription = "Search")
-                        }
-                    },
-                    singleLine = true
-                )
-                
-                Spacer(Modifier.height(16.dp))
-                
-                if (isSearching) {
-                    Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = BrandAccent)
+            Text(
+                text = "Download Subtitles",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(vertical = 16.dp)
+            )
+
+            // Search Bar
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
+                label = { Text("Search movie/show name") },
+                modifier = Modifier.fillMaxWidth(),
+                trailingIcon = {
+                    IconButton(onClick = { onSearch(query) }) {
+                        Icon(Icons.Default.Search, contentDescription = "Search")
                     }
-                } else {
-                    LazyColumn(modifier = Modifier.weight(1f, fill = false)) {
-                        items(results) { subtitle ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { onDownload(subtitle.downloadUrl) }
-                                    .padding(vertical = 12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(subtitle.name, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    Text(subtitle.language, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                                }
-                                Icon(Icons.Default.Download, contentDescription = null, tint = BrandAccent)
-                            }
-                            HorizontalDivider(color = Color.LightGray.copy(alpha = 0.2f))
-                        }
-                        if (results.isEmpty() && query.isNotEmpty()) {
-                            item {
-                                Text(
-                                    "No results found",
-                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Color.Gray,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        }
-                    }
+                },
+                singleLine = true
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            if (isSearching) {
+                Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = BrandAccent)
                 }
-                
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = onDismiss) {
-                        Text("Close")
+            } else {
+                LazyColumn(modifier = Modifier.weight(1f, fill = false)) {
+                    items(results) { subtitle ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { 
+                                    onDownload(subtitle.downloadUrl)
+                                    onDismiss()
+                                }
+                                .padding(vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(subtitle.name, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(subtitle.language, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                            }
+                            Icon(Icons.Default.Download, contentDescription = null, tint = BrandAccent)
+                        }
+                        HorizontalDivider(color = Color.LightGray.copy(alpha = 0.2f))
+                    }
+                    if (results.isEmpty() && query.isNotEmpty()) {
+                        item {
+                            Text(
+                                "No results found",
+                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.Gray,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
             }
@@ -230,29 +218,12 @@ fun AspectRatioSelectorDialog(
     onModeSelected: (AspectRatioMode) -> Unit,
     onDismiss: () -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Aspect Ratio") },
-        text = {
-            LazyColumn {
-                items(AspectRatioMode.entries.toList()) { mode ->
-                    TextButton(
-                        onClick = { onModeSelected(mode) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = mode.displayName,
-                            fontWeight = if (mode == currentMode) FontWeight.Bold else FontWeight.Normal,
-                            color = if (mode == currentMode) BrandAccent else MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
+    CustomSelectionSheet(
+        title = "Aspect Ratio",
+        items = AspectRatioMode.entries.toList(),
+        selectedItem = currentMode,
+        itemLabel = { it.displayName },
+        onItemSelected = onModeSelected,
+        onDismiss = onDismiss
     )
 }

@@ -26,6 +26,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import com.chintan992.xplayer.ui.theme.BrandAccent
 
 @Composable
@@ -146,6 +150,76 @@ fun <T> CustomSelectionDialog(
                     TextButton(onClick = onDismiss) {
                         Text("Cancel", color = BrandAccent)
                     }
+                }
+            }
+        }
+    }
+}
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun <T> CustomSelectionSheet(
+    title: String,
+    items: List<T>,
+    selectedItem: T?,
+    itemLabel: (T) -> String,
+    onItemSelected: (T) -> Unit,
+    onDismiss: () -> Unit,
+    footer: (@Composable () -> Unit)? = null
+) {
+    val sheetState = rememberModalBottomSheetState()
+    
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = Color(0xFF1E1E1E),
+        contentColor = Color.White
+    ) {
+        Column(modifier = Modifier.padding(bottom = 32.dp)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+            )
+
+            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+
+            LazyColumn(
+                modifier = Modifier.heightIn(max = 400.dp)
+            ) {
+                items(items) { item ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onItemSelected(item)
+                                onDismiss()
+                            }
+                            .padding(horizontal = 24.dp, vertical = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = item == selectedItem,
+                            onClick = null,
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = BrandAccent,
+                                unselectedColor = Color.White.copy(alpha = 0.6f)
+                            )
+                        )
+                        Text(
+                            text = itemLabel(item),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (item == selectedItem) Color.White else Color.White.copy(alpha = 0.8f),
+                            modifier = Modifier.padding(start = 16.dp)
+                        )
+                    }
+                }
+            }
+            
+            if (footer != null) {
+                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                     footer()
                 }
             }
         }

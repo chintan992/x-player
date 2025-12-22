@@ -12,20 +12,21 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import com.chintan992.xplayer.ui.theme.*
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Primary,
+    primary = PrimaryDark,
     onPrimary = OnPrimaryDark,
-    primaryContainer = SurfaceContainerDark, // Neutral container
-    onPrimaryContainer = Color.White,
-    secondary = BrandAccent, // Use BrandAccent as Secondary in Dark Mode for subtle pops
+    primaryContainer = PrimaryContainerDark,
+    onPrimaryContainer = OnPrimaryContainerDark,
+    secondary = BrandAccentLight,
     onSecondary = Color.White,
     secondaryContainer = BrandAccentDark,
     onSecondaryContainer = Color(0xFFFFD8EC),
     tertiary = Tertiary,
     onTertiary = Color.Black,
-    tertiaryContainer = TertiaryDark,
-    onTertiaryContainer = Color(0xFFD8D3F4),
+    tertiaryContainer = TertiaryContainer,
+    onTertiaryContainer = OnTertiaryContainer,
     background = BackgroundDark,
     onBackground = OnSurfaceDark,
     surface = SurfaceDark,
@@ -33,23 +34,24 @@ private val DarkColorScheme = darkColorScheme(
     surfaceVariant = SurfaceVariantDark,
     onSurfaceVariant = OnSurfaceVariantDark,
     surfaceContainer = SurfaceContainerDark,
+    surfaceContainerHigh = SurfaceContainerHighDark,
     error = ErrorColor,
     onError = Color.White
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Color.Black, // Bold clean black for light mode primary
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFF5F5F5),
-    onPrimaryContainer = Color.Black,
+    primary = Primary,
+    onPrimary = OnPrimaryLight,
+    primaryContainer = PrimaryContainer,
+    onPrimaryContainer = OnPrimaryContainer,
     secondary = BrandAccent,
     onSecondary = Color.White,
-    secondaryContainer = BrandAccentLight,
-    onSecondaryContainer = Color(0xFF3E002C),
+    secondaryContainer = SecondaryContainer,
+    onSecondaryContainer = OnSecondaryContainer,
     tertiary = Tertiary,
     onTertiary = Color.White,
-    tertiaryContainer = TertiaryLight,
-    onTertiaryContainer = Color(0xFF170047),
+    tertiaryContainer = TertiaryContainer,
+    onTertiaryContainer = OnTertiaryContainer,
     background = BackgroundLight,
     onBackground = OnSurfaceLight,
     surface = SurfaceLight,
@@ -57,6 +59,7 @@ private val LightColorScheme = lightColorScheme(
     surfaceVariant = SurfaceVariantLight,
     onSurfaceVariant = OnSurfaceVariantLight,
     surfaceContainer = SurfaceContainerLight,
+    surfaceContainerHigh = SurfaceContainerHighLight,
     error = ErrorColor,
     onError = Color.White
 )
@@ -90,6 +93,27 @@ fun XPlayerTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
+        typography = Typography,
+        content = content
+    )
+}
+@Composable
+fun CinemaTheme(
+    content: @Composable () -> Unit
+) {
+    // Force Dark Theme with Cinema specific colors
+    val cinemaColorScheme = DarkColorScheme.copy(
+        background = CinemaBackground,
+        onBackground = CinemaOnBackground,
+        surface = CinemaSurface,
+        onSurface = CinemaOnSurface,
+        primary = CinemaOnBackground, // Control icons
+        primaryContainer = Color(0xFF333333), // Button backgrounds
+        onPrimaryContainer = Color.White
+    )
+
+    MaterialTheme(
+        colorScheme = cinemaColorScheme,
         typography = Typography,
         content = content
     )

@@ -295,151 +295,143 @@ fun VideoListItem(
 ) {
     val context = LocalContext.current
     
-    // Cleaner List Item
-    Row(
+    androidx.compose.material3.ListItem(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(Dimens.CornerMedium))
-            .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f) else Color.Transparent)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(Dimens.SpacingMedium), // Internal padding
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Thumbnail
-        Box(
-            modifier = Modifier
-                .size(width = Dimens.VideoListItemTitleWidth, height = Dimens.VideoListItemThumbnailHeight)
-                .clip(RoundedCornerShape(Dimens.CornerSmall)),
-             contentAlignment = Alignment.Center
-        ) {
-            if (fieldVisibility.thumbnail) {
-                with(sharedTransitionScope) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(context)
-                            .data(video.uri)
-                            .videoFrameMillis(1000)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = video.name,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .sharedElement(
-                                sharedContentState = rememberSharedContentState(key = "video-${video.id}"),
-                                animatedVisibilityScope = animatedVisibilityScope
-                            ),
-                        contentScale = ContentScale.Crop
-                    )
-                }
-                
-                // Duration badge on thumbnail
-                if (fieldVisibility.duration) {
-                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.3f))
-                    )
-                    Text(
-                        text = formatDuration(video.duration),
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(2.dp),
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 10.sp
-                    )
-                }
-                
-                // Progress indicator
-                playbackPosition?.let { (pos, _) ->
-                    if (pos > 0) {
-                        val progress = pos.toFloat() / video.duration.coerceAtLeast(1)
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(Dimens.ProgressBarHeightSmall)
-                                .align(Alignment.BottomStart)
-                                .background(Color.White.copy(alpha = 0.3f))
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth(progress)
-                                    .fillMaxHeight()
-                                    .background(BrandAccent)
-                            )
-                        }
-                    }
-                }
-            }
-            
-            // Selection Overlay (Always visible in selection mode, over thumbnail or placeholder)
-             if (isSelectionMode) {
-                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.4f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isSelected) {
-                        Icon(
-                            imageVector = Icons.Default.CheckCircle,
-                            contentDescription = "Selected",
-                            tint = BrandAccent,
-                            modifier = Modifier.size(24.dp).background(Color.White, androidx.compose.foundation.shape.CircleShape)
-                        )
-                    } else {
-                         Icon(
-                            imageVector = Icons.Outlined.RadioButtonUnchecked,
-                            contentDescription = "Unselected",
-                            tint = Color.White.copy(alpha = 0.7f),
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
-            }
-        }
-        
-        Spacer(modifier = Modifier.width(Dimens.SpacingLarge))
-        
-        // Video info
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+        headlineContent = {
+             Text(
                 text = video.name,
-                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Normal,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
-            
-            Spacer(modifier = Modifier.height(Dimens.SpacingSmall))
-            
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMedium)
-            ) {
-                if (fieldVisibility.size) {
+        },
+        supportingContent = {
+            Row(horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMedium)) {
+                 if (fieldVisibility.size) {
                     Text(
                         text = formatFileSize(video.size),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 if (fieldVisibility.duration && !fieldVisibility.thumbnail) {
                     Text(
                         text = formatDuration(video.duration),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
-        }
-        
-        // More options icon placeholder (Hidden in selection mode)
-        if (!isSelectionMode) {
-             Icon(
-                imageVector = Icons.Default.MoreVert,
-                contentDescription = "More",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(Dimens.IconMedium)
-            )
-        }
-    }
+        },
+        leadingContent = {
+            // Thumbnail
+            Box(
+                modifier = Modifier
+                    .size(width = Dimens.VideoListItemTitleWidth, height = Dimens.VideoListItemThumbnailHeight)
+                    .clip(RoundedCornerShape(Dimens.CornerSmall)),
+                 contentAlignment = Alignment.Center
+            ) {
+                if (fieldVisibility.thumbnail) {
+                    with(sharedTransitionScope) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(video.uri)
+                                .videoFrameMillis(1000)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = video.name,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .sharedElement(
+                                    sharedContentState = rememberSharedContentState(key = "video-${video.id}"),
+                                    animatedVisibilityScope = animatedVisibilityScope
+                                ),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    
+                    // Duration badge on thumbnail
+                    if (fieldVisibility.duration) {
+                         Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.3f))
+                        )
+                        Text(
+                            text = formatDuration(video.duration),
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(2.dp),
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 10.sp
+                        )
+                    }
+                    
+                    // Progress indicator
+                    playbackPosition?.let { (pos, _) ->
+                        if (pos > 0) {
+                            val progress = pos.toFloat() / video.duration.coerceAtLeast(1)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(Dimens.ProgressBarHeightSmall)
+                                    .align(Alignment.BottomStart)
+                                    .background(Color.White.copy(alpha = 0.3f))
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(progress)
+                                        .fillMaxHeight()
+                                        .background(BrandAccent)
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                // Selection Overlay
+                 if (isSelectionMode) {
+                     Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.4f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isSelected) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = "Selected",
+                                tint = BrandAccent,
+                                modifier = Modifier.size(24.dp).background(Color.White, androidx.compose.foundation.shape.CircleShape)
+                            )
+                        } else {
+                             Icon(
+                                imageVector = Icons.Outlined.RadioButtonUnchecked,
+                                contentDescription = "Unselected",
+                                tint = Color.White.copy(alpha = 0.7f),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        trailingContent = {
+             if (!isSelectionMode) {
+                 androidx.compose.material3.IconButton(onClick = { /* TODO: Show options menu */ }) {
+                     Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(Dimens.IconMedium)
+                    )
+                 }
+            }
+        },
+        colors = androidx.compose.material3.ListItemDefaults.colors(
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f) else Color.Transparent,
+            headlineColor = MaterialTheme.colorScheme.onBackground,
+            supportingColor = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    )
 }

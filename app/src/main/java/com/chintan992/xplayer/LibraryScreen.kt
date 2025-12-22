@@ -8,6 +8,7 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Folder
@@ -120,79 +121,83 @@ fun LibraryScreen(
             }
         }
 
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                         if (isSelectionMode) {
-                             Text(
-                                 text = "${viewModel.getSelectedCount()} Selected",
-                                 fontWeight = FontWeight.SemiBold
-                             )
-                         } else {
-                            Text(
-                                text = when {
-                                    selectedFolder != null -> selectedFolder!!.name
-                                    viewMode == ViewMode.FOLDERS -> stringResource(R.string.title_folders)
-                                    else -> stringResource(R.string.title_all_videos)
-                                },
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    },
-                    navigationIcon = {
-                        if (isSelectionMode) {
-                             IconButton(onClick = { viewModel.exitSelectionMode() }) {
-                                Icon(
-                                    imageVector = Icons.Filled.Close,
-                                    contentDescription = "Close"
+            val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+            
+            Scaffold(
+                modifier = androidx.compose.ui.Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+                topBar = {
+                    androidx.compose.material3.LargeTopAppBar(
+                        title = {
+                             if (isSelectionMode) {
+                                 Text(
+                                     text = "${viewModel.getSelectedCount()} Selected",
+                                     fontWeight = FontWeight.SemiBold
+                                 )
+                             } else {
+                                Text(
+                                    text = when {
+                                        selectedFolder != null -> selectedFolder!!.name
+                                        viewMode == ViewMode.FOLDERS -> stringResource(R.string.title_folders)
+                                        else -> stringResource(R.string.title_all_videos)
+                                    },
+                                    fontWeight = FontWeight.SemiBold
                                 )
                             }
-                        } else if (selectedFolder != null) {
-                            IconButton(onClick = { viewModel.clearSelectedFolder() }) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = stringResource(R.string.action_back)
-                                )
-                            }
-                        }
-                    },
-                    actions = {
-                        if (isSelectionMode) {
-                             // No actions here, maybe Select All if not in bottom bar?
-                             // Leaving empty for cleaner top bar as bottom bar has actions
-                        } else {
-                            // Settings button
-                            IconButton(onClick = { viewModel.showSettings() }) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Settings,
-                                    contentDescription = stringResource(R.string.action_settings)
-                                )
-                            }
-                            if (selectedFolder == null) {
-                                IconButton(onClick = { viewModel.toggleViewMode() }) {
+                        },
+                        navigationIcon = {
+                            if (isSelectionMode) {
+                                 IconButton(onClick = { viewModel.exitSelectionMode() }) {
                                     Icon(
-                                        imageVector = if (viewMode == ViewMode.ALL_VIDEOS) 
-                                            Icons.Outlined.Folder 
-                                        else 
-                                            Icons.Outlined.VideoLibrary,
-                                        contentDescription = if (viewMode == ViewMode.ALL_VIDEOS) 
-                                            stringResource(R.string.action_switch_folder_view) 
-                                        else 
-                                            stringResource(R.string.action_switch_all_videos)
+                                        imageVector = Icons.Filled.Close,
+                                        contentDescription = "Close"
+                                    )
+                                }
+                            } else if (selectedFolder != null) {
+                                IconButton(onClick = { viewModel.clearSelectedFolder() }) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = stringResource(R.string.action_back)
                                     )
                                 }
                             }
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background,
-                        titleContentColor = MaterialTheme.colorScheme.onBackground,
-                        actionIconContentColor = MaterialTheme.colorScheme.onBackground,
-                        navigationIconContentColor = MaterialTheme.colorScheme.onBackground
+                        },
+                        actions = {
+                            if (isSelectionMode) {
+                                 // No actions here
+                            } else {
+                                // Settings button
+                                IconButton(onClick = { viewModel.showSettings() }) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Settings,
+                                        contentDescription = stringResource(R.string.action_settings)
+                                    )
+                                }
+                                if (selectedFolder == null) {
+                                    IconButton(onClick = { viewModel.toggleViewMode() }) {
+                                        Icon(
+                                            imageVector = if (viewMode == ViewMode.ALL_VIDEOS) 
+                                                Icons.Outlined.Folder 
+                                            else 
+                                                Icons.Outlined.VideoLibrary,
+                                            contentDescription = if (viewMode == ViewMode.ALL_VIDEOS) 
+                                                stringResource(R.string.action_switch_folder_view) 
+                                            else 
+                                                stringResource(R.string.action_switch_all_videos)
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        colors = TopAppBarDefaults.largeTopAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.background,
+                            scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            titleContentColor = MaterialTheme.colorScheme.onBackground,
+                            actionIconContentColor = MaterialTheme.colorScheme.onBackground,
+                            navigationIconContentColor = MaterialTheme.colorScheme.onBackground
+                        ),
+                        scrollBehavior = scrollBehavior
                     )
-                )
-            },
+                },
             bottomBar = {
                 if (isSelectionMode) {
                     com.chintan992.xplayer.library.ui.SelectionBar(

@@ -87,26 +87,45 @@ fun FolderListItem(
 ) {
     val context = LocalContext.current
     
-    // Transparent Card for cleaner "Cinema" List look
-    Card(
+    androidx.compose.material3.ListItem(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(Dimens.CornerMedium))
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
             ),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f) else Color.Transparent
-        ),
-        shape = RoundedCornerShape(Dimens.CornerMedium),
-        border = if (isSelected) androidx.compose.foundation.BorderStroke(1.dp, BrandAccent) else null
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimens.SpacingMedium),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        headlineContent = { 
+            Text(
+                text = folder.name, 
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            ) 
+        },
+        supportingContent = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMedium)
+            ) {
+                Text(text = "${folder.videoCount} video${if (folder.videoCount != 1) "s" else ""}")
+                
+                 if (folder.totalSize > 0) {
+                    Text(
+                        text = formatFileSize(folder.totalSize),
+                        modifier = Modifier
+                            .background(
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                shape = RoundedCornerShape(Dimens.CornerSmall)
+                            )
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        },
+        leadingContent = {
             // Folder thumbnail
             Box(
                 modifier = Modifier
@@ -161,62 +180,27 @@ fun FolderListItem(
                     }
                 }
             }
-            
-            Spacer(modifier = Modifier.width(Dimens.SpacingLarge))
-            
-            // Folder info
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = folder.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                
-                Spacer(modifier = Modifier.height(Dimens.SpacingSmall))
-                
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMedium)
-                ) {
-                    Text(
-                        text = "${folder.videoCount} video${if (folder.videoCount != 1) "s" else ""}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    
-                    // Size badge
-                    if (folder.totalSize > 0) {
-                        Text(
-                            text = formatFileSize(folder.totalSize),
-                            modifier = Modifier
-                                .background(
-                                    color = MaterialTheme.colorScheme.surfaceVariant,
-                                    shape = RoundedCornerShape(Dimens.CornerSmall)
-                                )
-                                .padding(horizontal = 6.dp, vertical = 2.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-            
-            // Chevron for affordance (Hide in selection mode)
-            if (!isSelectionMode) {
+        },
+        trailingContent = {
+             if (!isSelectionMode) {
                  Icon(
                     imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 )
             }
-        }
-        // Divider
-        HorizontalDivider(
-            modifier = Modifier.padding(start = 84.dp), // Intentional indent
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)
+        },
+        colors = androidx.compose.material3.ListItemDefaults.colors(
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f) else Color.Transparent,
+            headlineColor = MaterialTheme.colorScheme.onBackground,
+            supportingColor = MaterialTheme.colorScheme.onSurfaceVariant
         )
-    }
+    )
+    
+    // Divider logic handled by list container or here? 
+    // Usually ListItems handle their own dividers or list does. Keeping explicit divider for now if desired.
+    HorizontalDivider(
+        modifier = Modifier.padding(start = 84.dp), 
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)
+    )
 }
