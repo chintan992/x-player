@@ -35,6 +35,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.positionChanged
+import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -399,6 +403,7 @@ fun VideoPlayerScreen(
         var startDragX by remember { mutableFloatStateOf(0f) }
         var doubleTapSide by remember { mutableStateOf<DoubleTapSide?>(null) }
         var doubleTapKey by remember { mutableIntStateOf(0) }
+        var isLongPressing by remember { mutableStateOf(false) }
 
         Box(
             modifier = Modifier
@@ -420,70 +425,96 @@ fun VideoPlayerScreen(
                                 } else {
                                     viewModel.togglePlayPause()
                                 }
-                            },
-                            onPress = {
-                                try {
-                                    withTimeout(500) {
-                                        tryAwaitRelease()
-                                    }
-                                } catch (e: TimeoutCancellationException) {
-                                    viewModel.startSpeedOverride()
-                                    tryAwaitRelease()
-                                    viewModel.stopSpeedOverride()
-                                }
                             }
                         )
                     }
                 }
                 .pointerInput(uiState.isLocked) {
                     if (!uiState.isLocked) {
-                        detectDragGestures(
-                            onDragStart = { offset ->
-                                startDragX = offset.x
-                                dragMode = DragMode.NONE
-                            },
-                            onDragEnd = {
-                                viewModel.endSeeking()
-                                dragMode = DragMode.NONE
-                            },
-                            onDragCancel = {
-                                viewModel.endSeeking()
-                                dragMode = DragMode.NONE
-                            },
-                            onDrag = { change, dragAmount ->
-                                // Determine mode if not set
-                                if (dragMode == DragMode.NONE) {
-                                    if (kotlin.math.abs(dragAmount.x) > kotlin.math.abs(dragAmount.y)) {
-                                        dragMode = DragMode.SEEK
-                                        viewModel.startSeeking(uiState.currentPosition)
-                                    } else {
-                                        // Vertical
-                                        dragMode = if (startDragX < size.width / 2) {
-                                            DragMode.BRIGHTNESS
-                                        } else {
-                                            DragMode.VOLUME
+                        awaitEachGesture {
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            startDragX = down.position.x
+                            var dragStarted = false
+                            var longPressTriggered = false
+                            dragMode = DragMode.NONE
+
+                            // Launch long press timer
+                            val longPressJob = scope.launch {
+                                delay(500) // Long press timeout
+                                if (!dragStarted) {
+                                    longPressTriggered = true
+                                    isLongPressing = true
+                                    viewModel.startSpeedOverride()
+                                }
+                            }
+
+                            try {
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    val change = event.changes.firstOrNull() ?: break
+
+                                    if (change.changedToUp()) {
+                                        break
+                                    }
+
+                                    if (change.positionChanged()) {
+                                        val dragAmount = change.position - down.position
+                                        if (!dragStarted && !longPressTriggered) {
+                                            if (dragAmount.getDistance() > viewConfiguration.touchSlop) {
+                                                dragStarted = true
+                                                longPressJob.cancel()
+                                                
+                                                // Initialize drag mode
+                                                if (kotlin.math.abs(dragAmount.x) > kotlin.math.abs(dragAmount.y)) {
+                                                    dragMode = DragMode.SEEK
+                                                    viewModel.startSeeking(uiState.currentPosition)
+                                                } else {
+                                                    dragMode = if (startDragX < size.width / 2) {
+                                                        DragMode.BRIGHTNESS
+                                                    } else {
+                                                        DragMode.VOLUME
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        if (dragStarted) {
+                                            // Handle drag updates
+                                            change.consume()
+                                            // Note: we calculate delta from previous position, but here we used total dragAmount for detection
+                                            // Ideally we want delta. Let's rely on change.position - change.previousPosition
+                                            val delta = change.position - change.previousPosition
+                                            
+                                            when (dragMode) {
+                                                DragMode.SEEK -> {
+                                                    val seekDelta = (delta.x * 200).toLong()
+                                                    viewModel.updateSeekPosition(uiState.seekPosition + seekDelta)
+                                                }
+                                                DragMode.BRIGHTNESS -> {
+                                                    val brightnessDelta = -delta.y / 500f
+                                                    viewModel.updateBrightness(brightnessDelta)
+                                                }
+                                                DragMode.VOLUME -> {
+                                                    val volumeDelta = -delta.y / 500f
+                                                    viewModel.updateVolume(volumeDelta)
+                                                }
+                                                else -> {}
+                                            }
                                         }
                                     }
                                 }
-
-                                when (dragMode) {
-                                    DragMode.SEEK -> {
-                                        // 1px = 200ms
-                                        val seekDelta = (dragAmount.x * 200).toLong()
-                                        viewModel.updateSeekPosition(uiState.seekPosition + seekDelta)
-                                    }
-                                    DragMode.BRIGHTNESS -> {
-                                        val delta = -dragAmount.y / 500f
-                                        viewModel.updateBrightness(delta)
-                                    }
-                                    DragMode.VOLUME -> {
-                                        val delta = -dragAmount.y / 500f
-                                        viewModel.updateVolume(delta)
-                                    }
-                                    else -> {} // Should not happen
+                            } finally {
+                                longPressJob.cancel()
+                                if (longPressTriggered) {
+                                    viewModel.stopSpeedOverride()
+                                    isLongPressing = false
+                                }
+                                if (dragStarted) {
+                                    viewModel.endSeeking()
+                                    dragMode = DragMode.NONE
                                 }
                             }
-                        )
+                        }
                     }
                 }
         )
