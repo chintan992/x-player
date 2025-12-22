@@ -9,6 +9,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import com.chintan992.xplayer.ui.theme.BrandAccent
 
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material.icons.outlined.Watch
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import android.widget.Toast
+import android.net.Uri
+import com.chintan992.xplayer.cast.WearableHelper
 import android.app.Activity
 import android.content.Context
 import android.content.pm.ActivityInfo
@@ -123,7 +131,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.TimeoutCancellationException
 
-import android.net.Uri
+
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.compose.animation.AnimatedVisibilityScope
@@ -150,11 +158,83 @@ fun VideoPlayerScreen(
     val context = LocalContext.current
     val viewModel: PlayerViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsState()
+    val scope = rememberCoroutineScope()
 
     var showSpeedDialog by remember { mutableStateOf(false) }
     var showAudioDialog by remember { mutableStateOf(false) }
     var showSubtitleDialog by remember { mutableStateOf(false) }
     var showSubtitleSearchDialog by remember { mutableStateOf(false) }
+
+    // Smart Cast State
+    var showDeviceDialog by remember { mutableStateOf(false) }
+    var availableNodes by remember { mutableStateOf<List<com.google.android.gms.wearable.Node>>(emptyList()) }
+
+    // Logic to handle cast click
+    val handleCastClick = {
+        scope.launch {
+            val nodes = withContext(Dispatchers.IO) {
+                WearableHelper.getConnectedVideoPlayers(context)
+            }
+            if (nodes.isEmpty()) {
+                // Fallback: check if ANY node is connected but maybe missing app
+                val allNodes = withContext(Dispatchers.IO) {
+                   com.google.android.gms.tasks.Tasks.await(com.google.android.gms.wearable.Wearable.getNodeClient(context).connectedNodes)
+                }
+                
+                if (allNodes.isNotEmpty()) {
+                     Toast.makeText(context, "Watch found but app not installed/open.", Toast.LENGTH_LONG).show()
+                } else {
+                     Toast.makeText(context, "No watch connected", Toast.LENGTH_SHORT).show()
+                }
+            } else if (nodes.size == 1) {
+                // Auto-cast to single device
+                if (videoUri != null) {
+                    WearableHelper.castVideoToWatch(context, Uri.parse(videoUri), uiState.videoTitle, nodes.first().id)
+                }
+            } else {
+                // Multiple devices, show picker
+                availableNodes = nodes
+                showDeviceDialog = true
+            }
+        }
+    }
+    
+    // Device Selection Dialog
+    if (showDeviceDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeviceDialog = false },
+            title = { Text("Select Watch") },
+            text = {
+                LazyColumn {
+                    items(availableNodes) { node ->
+                        TextButton(
+                            onClick = {
+                                showDeviceDialog = false
+                                scope.launch {
+                                    if (videoUri != null) {
+                                        WearableHelper.castVideoToWatch(context, Uri.parse(videoUri), uiState.videoTitle, node.id)
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = node.displayName,
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showDeviceDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     val activity = context as? Activity
 
     // Initialize ViewModel with player
@@ -530,7 +610,10 @@ fun VideoPlayerScreen(
                     onLockClick = onLockClick,
                     onAspectRatioClick = onAspectRatioClick,
                     onOrientationClick = onOrientationClick,
-                    onPipClick = onEnterPip
+                    onPipClick = onEnterPip,
+                    onWatchCastClick = {
+                        handleCastClick()
+                    }
                 )
             }
         }
@@ -719,7 +802,8 @@ private fun ControlsOverlay(
     onLockClick: () -> Unit,
     onAspectRatioClick: () -> Unit,
     onOrientationClick: () -> Unit,
-    onPipClick: () -> Unit
+    onPipClick: () -> Unit,
+    onWatchCastClick: () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         // Top gradient
@@ -772,6 +856,7 @@ private fun ControlsOverlay(
             onDecoderClick = onDecoderClick,
             onAudioClick = onAudioClick,
             onSubtitleClick = onSubtitleClick,
+            onWatchCastClick = onWatchCastClick,
             modifier = Modifier.align(Alignment.TopCenter)
         )
 
@@ -830,6 +915,7 @@ private fun TopBar(
     onDecoderClick: () -> Unit,
     onAudioClick: () -> Unit,
     onSubtitleClick: () -> Unit,
+    onWatchCastClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -913,6 +999,14 @@ private fun TopBar(
         GoogleCastButton(
              modifier = Modifier.padding(end = 4.dp)
         )
+
+        IconButton(onClick = onWatchCastClick) {
+            Icon(
+                imageVector = Icons.Outlined.Watch,
+                contentDescription = "Cast to Watch",
+                tint = Color.White
+            )
+        }
 
         IconButton(onClick = onSettingsToggle) {
             Icon(

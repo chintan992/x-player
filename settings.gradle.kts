@@ -21,3 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "X Player"
 include(":app")
+include(":wear")

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#80000000">
+
+    <!-- Title at Top -->
+    <TextView
+        android:id="@+id/video_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="20dp"
+        android:ellipsize="end"
+        android:gravity="center"
+        android:maxLines="1"
+        android:paddingHorizontal="24dp"
+        android:textColor="@android:color/white"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+    <!-- Center Play/Pause -->
+    <FrameLayout
+        android:id="@+id/center_controls"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true">
+
+        <ImageButton
+            android:id="@+id/exo_play"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?android:selectableItemBackground"
+            android:src="@android:drawable/ic_media_play" />
+
+        <ImageButton
+            android:id="@+id/exo_pause"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?android:selectableItemBackground"
+            android:src="@android:drawable/ic_media_pause" />
+    </FrameLayout>
+
+    <!-- Rewind (Left) -->
+    <ImageButton
+        android:id="@+id/exo_rew"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_toStartOf="@id/center_controls"
+        android:layout_centerVertical="true"
+        android:layout_marginEnd="8dp"
+        android:background="?android:selectableItemBackground"
+        android:src="@android:drawable/ic_media_rew" />
+
+    <!-- Fast Forward (Right) -->
+    <ImageButton
+        android:id="@+id/exo_ffwd"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_toEndOf="@id/center_controls"
+        android:layout_centerVertical="true"
+        android:layout_marginStart="8dp"
+        android:background="?android:selectableItemBackground"
+        android:src="@android:drawable/ic_media_ff" />
+
+
+</RelativeLayout>

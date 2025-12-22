@@ -20,6 +20,9 @@ castFramework = "21.4.0"
 mediaRouter = "1.6.0"
 appcompat = "1.7.0"
 navigationCompose = "2.8.5"
+playServicesWearable = "18.1.0"
+nanohttpd = "2.3.1"
+wear = "1.3.0"
 
 [libraries]
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
@@ -57,6 +60,9 @@ androidx-datastore-preferences = { group = "androidx.datastore", name = "datasto
 play-services-cast-framework = { group = "com.google.android.gms", name = "play-services-cast-framework", version.ref = "castFramework" }
 androidx-mediarouter = { group = "androidx.mediarouter", name = "mediarouter", version.ref = "mediaRouter" }
 androidx-media3-cast = { group = "androidx.media3", name = "media3-cast", version.ref = "media3" }
+play-services-wearable = { group = "com.google.android.gms", name = "play-services-wearable", version.ref = "playServicesWearable" }
+nanohttpd = { group = "org.nanohttpd", name = "nanohttpd", version.ref = "nanohttpd" }
+androidx-wear = { group = "androidx.wear", name = "wear", version.ref = "wear" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
