@@ -354,7 +354,7 @@ fun VideoPlayerScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .sharedElement(
-                            sharedContentState = rememberSharedContentState(key = "video-$videoId"),
+                            state = rememberSharedContentState(key = "video-$videoId"),
                             animatedVisibilityScope = animatedVisibilityScope
                         ),
                     factory = { ctx ->
