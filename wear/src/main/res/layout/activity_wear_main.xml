@@ -7,37 +7,71 @@
     android:background="@android:color/black"
     tools:context=".presentation.WearMainActivity">
 
-    <!-- Idle State -->
+    <!-- Remote Control / Idle State -->
     <LinearLayout
-        android:id="@+id/idle_container"
+        android:id="@+id/remote_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center"
         android:orientation="vertical"
-        android:padding="16dp">
-
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:src="@android:drawable/stat_sys_download_done"
-            android:tint="@android:color/darker_gray" />
+        android:padding="8dp"
+        android:background="#222222">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:gravity="center"
-            android:text="Ready to Cast"
+            android:text="Remote"
             android:textColor="@android:color/white"
-            android:textSize="16sp" />
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"/>
 
-        <TextView
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:gravity="center"
-            android:text="Play a video on your phone and tap the watch icon"
-            android:textColor="@android:color/darker_gray"
-            android:textSize="12sp" />
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <ImageButton
+                android:id="@+id/remote_rewind"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@android:drawable/ic_media_rew"
+                android:background="?android:selectableItemBackground"
+                android:contentDescription="Rewind"
+                android:tint="@android:color/white"/>
+
+            <ImageButton
+                android:id="@+id/remote_play"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:src="@android:drawable/ic_media_play"
+                android:background="?android:selectableItemBackground"
+                android:contentDescription="Play"
+                android:tint="@android:color/holo_green_light"
+                android:layout_marginHorizontal="8dp"/>
+
+            <ImageButton
+                android:id="@+id/remote_pause"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:src="@android:drawable/ic_media_pause"
+                android:background="?android:selectableItemBackground"
+                android:contentDescription="Pause"
+                android:tint="@android:color/holo_orange_light"
+                 android:layout_marginHorizontal="8dp"
+                 android:visibility="gone"/>
+
+            <ImageButton
+                android:id="@+id/remote_ffwd"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@android:drawable/ic_media_ff"
+                android:background="?android:selectableItemBackground"
+                android:contentDescription="Fast Forward"
+                android:tint="@android:color/white"/>
+
+        </LinearLayout>
     </LinearLayout>
 
     <!-- Player View -->

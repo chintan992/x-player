@@ -11,9 +11,7 @@ import java.io.FileInputStream
 
 android {
     namespace = "com.chintan992.xplayer"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.chintan992.xplayer"

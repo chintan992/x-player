@@ -352,11 +352,7 @@ fun VideoPlayerScreen(
             with(sharedTransitionScope) {
                 AndroidView(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .sharedElement(
-                            state = rememberSharedContentState(key = "video-$videoId"),
-                            animatedVisibilityScope = animatedVisibilityScope
-                        ),
+                        .fillMaxSize(),
                     factory = { ctx ->
                         PlayerView(ctx).apply {
                             this.player = player

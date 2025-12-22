@@ -30,8 +30,26 @@ class WearMainActivity : ComponentActivity(), MessageClient.OnMessageReceivedLis
 
     private lateinit var player: ExoPlayer
     private lateinit var playerView: PlayerView
-    private lateinit var idleContainer: View
-    private lateinit var loadingIndicator: ProgressBar
+    private lateinit var remoteContainer: View
+    private lateinit var remotePlayButton: android.widget.ImageButton
+    private lateinit var remotePauseButton: android.widget.ImageButton
+    
+    // Remote Control Logic
+    private fun sendRemoteCommand(path: String) {
+        val nodeClient = Wearable.getNodeClient(this)
+        nodeClient.connectedNodes.addOnSuccessListener { nodes ->
+            for (node in nodes) {
+                Wearable.getMessageClient(this).sendMessage(node.id, path, null)
+            }
+        }
+    }
+    
+    private fun showRemoteMode() {
+        remoteContainer.visibility = View.VISIBLE
+        playerView.visibility = View.GONE
+        loadingIndicator.visibility = View.GONE
+        player.pause()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,8 +59,40 @@ class WearMainActivity : ComponentActivity(), MessageClient.OnMessageReceivedLis
         vibrator = getSystemService(android.content.Context.VIBRATOR_SERVICE) as android.os.Vibrator
 
         playerView = findViewById(R.id.player_view)
-        idleContainer = findViewById(R.id.idle_container)
+        remoteContainer = findViewById(R.id.remote_container) // Renamed from idle_container
         loadingIndicator = findViewById(R.id.loading_indicator)
+
+        // Remote Controls
+        remotePlayButton = findViewById(R.id.remote_play)
+        remotePauseButton = findViewById(R.id.remote_pause)
+        val remoteRewButton = findViewById<View>(R.id.remote_rewind)
+        val remoteFwdButton = findViewById<View>(R.id.remote_ffwd)
+        
+        remotePlayButton.setOnClickListener {
+            vibrateTick()
+            sendRemoteCommand("/control/play")
+            // Optimistic UI update
+            remotePlayButton.visibility = View.GONE
+            remotePauseButton.visibility = View.VISIBLE
+        }
+        
+        remotePauseButton.setOnClickListener {
+            vibrateTick()
+            sendRemoteCommand("/control/pause")
+            // Optimistic UI update
+            remotePauseButton.visibility = View.GONE
+            remotePlayButton.visibility = View.VISIBLE
+        }
+        
+        remoteRewButton.setOnClickListener {
+            vibrateTick()
+            sendRemoteCommand("/control/rewind")
+        }
+        
+        remoteFwdButton.setOnClickListener {
+            vibrateTick()
+            sendRemoteCommand("/control/ffwd")
+        }
 
         // Configure LoadControl for aggressive buffering
         val loadControl = DefaultLoadControl.Builder()
@@ -85,6 +135,7 @@ class WearMainActivity : ComponentActivity(), MessageClient.OnMessageReceivedLis
             val forwardButton = playerView.findViewById<View>(R.id.exo_ffwd)
             val playButton = playerView.findViewById<View>(R.id.exo_play)
             val pauseButton = playerView.findViewById<View>(R.id.exo_pause)
+            val backButton = playerView.findViewById<View>(R.id.exo_basic_controls_back_button) // Assuming this exists or we add logic to exit to remote
 
             // Manual wiring for play/pause to ensure they work reliably
             playButton?.setOnClickListener {
@@ -119,6 +170,9 @@ class WearMainActivity : ComponentActivity(), MessageClient.OnMessageReceivedLis
         // Request focus for rotary input
         playerView.focusable = View.FOCUSABLE
         playerView.requestFocus()
+        
+        // Show remote mode by default
+        showRemoteMode()
     }
 
     private fun safePlayerCommand(action: () -> Unit) {
@@ -215,17 +269,16 @@ class WearMainActivity : ComponentActivity(), MessageClient.OnMessageReceivedLis
     override fun onResume() {
         super.onResume()
         Wearable.getMessageClient(this).addListener(this)
-        if (player.isPlaying) {
-             // Keep player visible if already playing
-             idleContainer.visibility = View.GONE
-             playerView.visibility = View.VISIBLE
-        }
+        // Removed the check to force player visibility, as we might be in Remote Mode
     }
 
     override fun onPause() {
         super.onPause()
         Wearable.getMessageClient(this).removeListener(this)
-        player.pause()
+        // If playing video, pause it
+        if (player.isPlaying) {
+             player.pause()
+        }
     }
 
     override fun onDestroy() {
@@ -251,7 +304,7 @@ class WearMainActivity : ComponentActivity(), MessageClient.OnMessageReceivedLis
     }
 
     private fun playVideo(url: String, title: String) {
-        idleContainer.visibility = View.GONE
+        remoteContainer.visibility = View.GONE
         playerView.visibility = View.VISIBLE
         loadingIndicator.visibility = View.VISIBLE
 

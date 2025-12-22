@@ -630,8 +630,15 @@ class PlayerViewModel @Inject constructor(
     }
 
     private fun createMediaItem(url: String, title: String, subtitleUri: android.net.Uri?): MediaItem {
+        val metadata = androidx.media3.common.MediaMetadata.Builder()
+            .setTitle(title)
+            .setDisplayTitle(title)
+            .setArtist("XPlayer")
+            .build()
+
         val mediaItemBuilder = MediaItem.Builder()
             .setUri(url)
+            .setMediaMetadata(metadata)
             .setTag(title)
         
         if (subtitleUri != null) {

@@ -491,7 +491,7 @@ private fun VideoGridItem(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .sharedElement(
-                                    state = rememberSharedContentState(key = "video-${video.id}"),
+                                    sharedContentState = rememberSharedContentState(key = "video-${video.id}"),
                                     animatedVisibilityScope = animatedVisibilityScope
                                 ),
                             contentScale = ContentScale.Crop
@@ -606,7 +606,7 @@ private fun VideoListItem(
                         modifier = Modifier
                             .fillMaxSize()
                             .sharedElement(
-                                state = rememberSharedContentState(key = "video-${video.id}"),
+                                sharedContentState = rememberSharedContentState(key = "video-${video.id}"),
                                 animatedVisibilityScope = animatedVisibilityScope
                             ),
                         contentScale = ContentScale.Crop

@@ -40,7 +40,7 @@ class LocalVideoServer(
                 }
 
                 if (start >= fileLength) {
-                    return newFixedLengthResponse(Response.Status.RANGE_NOT_SATISFIABLE, MIME_PLAINTEXT, "")
+                    return newFixedLengthResponse(Response.Status.RANGE_NOT_SATISFIABLE, NanoHTTPD.MIME_PLAINTEXT, "")
                         .apply { addHeader("Content-Range", "bytes */$fileLength") }
                 }
 
@@ -73,7 +73,7 @@ class LocalVideoServer(
             }
         } catch (e: Exception) {
             e.printStackTrace()
-             newFixedLengthResponse(Response.Status.INTERNAL_ERROR, MIME_PLAINTEXT, e.message)
+             newFixedLengthResponse(Response.Status.INTERNAL_ERROR, NanoHTTPD.MIME_PLAINTEXT, e.message)
         }
     }
 
