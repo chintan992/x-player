@@ -34,7 +34,9 @@ class LibraryPreferencesRepository @Inject constructor(
     val folderViewSettings: Flow<FolderViewSettings> = dataStore.data
         .catch { exception ->
             if (exception is IOException) {
-                Log.e(TAG, "Error reading preferences.", exception)
+                if (BuildConfig.DEBUG) {
+                    Log.e(TAG, "Error reading preferences.", exception)
+                }
                 emit(emptyPreferences())
             } else {
                 throw exception

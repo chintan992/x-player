@@ -126,6 +126,7 @@ import androidx.compose.ui.text.style.TextAlign
 
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -188,9 +189,9 @@ fun VideoPlayerScreen(
                 }
                 
                 if (allNodes.isNotEmpty()) {
-                     Toast.makeText(context, "Watch found but app not installed/open.", Toast.LENGTH_LONG).show()
+                     Toast.makeText(context, context.getString(R.string.player_cast_app_missing), Toast.LENGTH_LONG).show()
                 } else {
-                     Toast.makeText(context, "No watch connected", Toast.LENGTH_SHORT).show()
+                     Toast.makeText(context, context.getString(R.string.player_cast_no_device), Toast.LENGTH_SHORT).show()
                 }
             } else if (nodes.size == 1) {
                 // Auto-cast to single device
@@ -209,7 +210,7 @@ fun VideoPlayerScreen(
     if (showDeviceDialog) {
         AlertDialog(
             onDismissRequest = { showDeviceDialog = false },
-            title = { Text("Select Watch") },
+            title = { Text(stringResource(R.string.player_cast_select_device)) },
             text = {
                 LazyColumn {
                     items(availableNodes) { node ->
@@ -235,7 +236,7 @@ fun VideoPlayerScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showDeviceDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.action_cancel))
                 }
             }
         )

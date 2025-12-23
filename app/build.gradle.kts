@@ -4,6 +4,8 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt.android)
     id("org.jetbrains.kotlin.kapt")
+    alias(libs.plugins.google.gms.google.services)
+    alias(libs.plugins.google.firebase.crashlytics)
 }
 
 import java.util.Properties
@@ -13,12 +15,23 @@ android {
     namespace = "com.chintan992.xplayer"
     compileSdk = 35
 
+    val versionPropsFile = file("version.properties")
+    val versionProps = Properties()
+    if (versionPropsFile.exists()) {
+        versionProps.load(FileInputStream(versionPropsFile))
+    }
+    
+    val vMajor = versionProps["versionMajor"]?.toString()?.toInt() ?: 1
+    val vMinor = versionProps["versionMinor"]?.toString()?.toInt() ?: 0
+    val vPatch = versionProps["versionPatch"]?.toString()?.toInt() ?: 0
+    val vBuild = versionProps["versionBuild"]?.toString()?.toInt() ?: 1
+
     defaultConfig {
         applicationId = "com.chintan992.xplayer"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = vBuild
+        versionName = "$vMajor.$vMinor.$vPatch"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -57,6 +70,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -78,6 +92,7 @@ dependencies {
     implementation(libs.androidx.media3.datasource.okhttp)
     implementation("org.checkerframework:checker-qual:3.37.0")
     implementation(libs.hilt.android)
+    implementation(libs.firebase.crashlytics)
     kapt(libs.hilt.compiler)
     implementation(libs.coil.compose)
     implementation(libs.coil.video)

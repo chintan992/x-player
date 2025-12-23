@@ -36,6 +36,11 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.chintan992.xplayer.data.PrivacyPolicyRepository
+import androidx.compose.runtime.collectAsState
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -59,6 +64,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var okHttpClient: OkHttpClient
 
+    @Inject
+    lateinit var privacyPolicyRepository: PrivacyPolicyRepository
+
     private val pipPlayerListener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             updatePipActions()
@@ -68,6 +76,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        deepLinkIntent = intent
 
         // Request Notification Permission for Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -87,8 +96,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Verify Header Injection
-        verifyHeaderInjection()
+
         
         // Register PiP broadcast receiver
         registerPipReceiver()
@@ -110,46 +118,44 @@ class MainActivity : ComponentActivity() {
         
         setContent {
             XPlayerTheme {
-                val navController = rememberNavController()
-                NavGraph(
-                    navController = navController, 
-                    player = player,
-                    onEnterPip = { enterPipMode() }
-                )
-            }
-        }
-    }
-
-    private fun verifyHeaderInjection() {
-        val host = "httpbin.org"
-        val headers = mapOf("X-Test-Header" to "VerificationValue")
-        headerStorage.addHeaders(host, headers)
-
-        // Run network request in background
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val request = okhttp3.Request.Builder()
-                    .url("https://httpbin.org/get")
-                    .build()
+                val isPolicyAccepted by privacyPolicyRepository.isPolicyAccepted.collectAsState(initial = null)
                 
-                val response = okHttpClient.newCall(request).execute()
-                if (response.isSuccessful) {
-                    val body = response.body?.string() ?: ""
-                    if (body.contains("VerificationValue")) {
-                        android.util.Log.d("HeaderVerification", "SUCCESS: Custom header injected and received.")
-                    } else {
-                        android.util.Log.e("HeaderVerification", "FAILURE: Custom header NOT found in response.")
+                when (isPolicyAccepted) {
+                    true -> {
+                        // Policy Accepted: Show Main Content
+                        val navController = rememberNavController()
+                        NavGraph(
+                            navController = navController, 
+                            player = player,
+                            deepLinkIntent = deepLinkIntent,
+                            resolveVideoTitle = ::resolveVideoTitle,
+                            onEnterPip = { enterPipMode() }
+                        )
                     }
-                } else {
-                    android.util.Log.e("HeaderVerification", "FAILURE: Request failed with code ${response.code}")
+                    false -> {
+                        // Policy Not Accepted: Show Dialog
+                        com.chintan992.xplayer.ui.PrivacyPolicyDialog(
+                            onAccept = {
+                                lifecycleScope.launch {
+                                    privacyPolicyRepository.acceptPolicy()
+                                }
+                            }
+                        )
+                    }
+                    null -> {
+                        // Loading state - show empty screen or splash
+                        // Surface handles background color to prevent flash
+                        Surface(
+                            modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+                            color = MaterialTheme.colorScheme.background
+                        ) { }
+                    }
                 }
-                response.close()
-            } catch (e: Exception) {
-                android.util.Log.e("HeaderVerification", "ERROR: ${e.message}")
-                e.printStackTrace()
             }
         }
     }
+
+
 
     private fun registerPipReceiver() {
         pipReceiver = object : BroadcastReceiver() {
@@ -299,6 +305,32 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        deepLinkIntent = intent
+    }
+
+    private var deepLinkIntent by mutableStateOf<Intent?>(null)
+
+    private fun resolveVideoTitle(uri: Uri): String {
+        var title = "External Video"
+        try {
+            val cursor = contentResolver.query(uri, null, null, null, null)
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    val displayNameIndex = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                    if (displayNameIndex != -1) {
+                        title = it.getString(displayNameIndex)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return title
+    }
+
+    // ... existing onDestroy ...
     override fun onDestroy() {
         super.onDestroy()
         pipReceiver?.let { unregisterReceiver(it) }
@@ -310,6 +342,8 @@ class MainActivity : ComponentActivity() {
 fun NavGraph(
     navController: NavHostController,
     player: ExoPlayer,
+    deepLinkIntent: Intent?,
+    resolveVideoTitle: (Uri) -> String,
     onEnterPip: () -> Unit = {}
 ) {
     // Store current video info for player screen
@@ -317,6 +351,26 @@ fun NavGraph(
     var currentVideoUri by remember { mutableStateOf<String?>(null) }
     var currentVideoId by remember { mutableStateOf<String?>(null) }
     var currentSubtitleUri by remember { mutableStateOf<android.net.Uri?>(null) }
+
+    // Handle Deep Link
+    androidx.compose.runtime.LaunchedEffect(deepLinkIntent) {
+        deepLinkIntent?.let { intent ->
+            if (intent.action == Intent.ACTION_VIEW && intent.data != null) {
+                val uri = intent.data!!
+                currentVideoUri = uri.toString()
+                currentVideoTitle = resolveVideoTitle(uri)
+                currentVideoId = uri.toString() // Use URI as ID for external videos
+                currentSubtitleUri = null // No subtitle support for external yet
+                
+                // Clear playlist for external video
+                com.chintan992.xplayer.PlaylistManager.clearPlaylist()
+                
+                navController.navigate("player") {
+                     launchSingleTop = true
+                }
+            }
+        }
+    }
 
     androidx.compose.animation.SharedTransitionLayout {
         NavHost(navController = navController, startDestination = "library") {

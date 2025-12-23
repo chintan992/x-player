@@ -149,7 +149,7 @@ fun LibraryScreen(
                                  IconButton(onClick = { viewModel.exitSelectionMode() }) {
                                     Icon(
                                         imageVector = Icons.Filled.Close,
-                                        contentDescription = "Close"
+                                        contentDescription = stringResource(R.string.content_desc_close_selection)
                                     )
                                 }
                             } else if (selectedFolder != null) {

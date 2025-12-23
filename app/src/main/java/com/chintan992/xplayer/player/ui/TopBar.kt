@@ -56,7 +56,7 @@ fun TopBar(
         IconButton(onClick = onBackPressed) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
+                contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.player_back),
                 tint = Color.White
             )
         }
@@ -73,7 +73,7 @@ fun TopBar(
                     IconButton(onClick = onSubtitleClick) {
                         Icon(
                             imageVector = Icons.Outlined.Subtitles,
-                            contentDescription = "Subtitles",
+                            contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.player_subtitles),
                             tint = Color.White
                         )
                     }
@@ -83,7 +83,7 @@ fun TopBar(
                     IconButton(onClick = onAudioClick) {
                          Icon(
                             imageVector = Icons.Outlined.Headphones,
-                            contentDescription = "Audio",
+                            contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.player_audio),
                             tint = Color.White
                         )
                     }
@@ -109,7 +109,7 @@ fun TopBar(
                 IconButton(onClick = onSpeedClick) {
                      Icon(
                         imageVector = Icons.Outlined.SlowMotionVideo,
-                        contentDescription = "Speed",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.player_speed),
                         tint = Color.White
                     )
                 }
@@ -132,7 +132,7 @@ fun TopBar(
         IconButton(onClick = onWatchCastClick) {
             Icon(
                 imageVector = Icons.Outlined.Watch,
-                contentDescription = "Cast to Watch",
+                contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.player_cast_watch),
                 tint = Color.White
             )
         }
@@ -140,7 +140,7 @@ fun TopBar(
         IconButton(onClick = onSettingsToggle) {
             Icon(
                 imageVector = Icons.Default.Settings,
-                contentDescription = "Settings",
+                contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.player_settings),
                 tint = if (showInlineSettings) BrandAccent else Color.White
             )
         }

@@ -37,7 +37,7 @@ fun CenterControls(
         IconButton(onClick = onSeekBackward) {
             Icon(
                 imageVector = Icons.Default.FastRewind,
-                contentDescription = "Rewind 10s",
+                contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.player_rewind_10),
                 tint = Color.White,
                 modifier = Modifier.size(40.dp)
             )
@@ -53,7 +53,10 @@ fun CenterControls(
         ) {
             Icon(
                 imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                contentDescription = if (isPlaying) "Pause" else "Play",
+                contentDescription = if (isPlaying) 
+                    androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.player_pause) 
+                else 
+                    androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.player_play),
                 modifier = Modifier.size(40.dp)
             )
         }
@@ -61,7 +64,7 @@ fun CenterControls(
         IconButton(onClick = onSeekForward) {
             Icon(
                 imageVector = Icons.Default.FastForward,
-                contentDescription = "Forward 10s",
+                contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.player_forward_10),
                 tint = Color.White,
                 modifier = Modifier.size(40.dp)
             )

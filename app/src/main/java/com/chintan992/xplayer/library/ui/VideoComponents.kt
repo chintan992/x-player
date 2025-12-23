@@ -242,7 +242,7 @@ fun VideoGridItem(
                         if (isSelected) {
                              Icon(
                                 imageVector = Icons.Default.CheckCircle,
-                                contentDescription = "Selected",
+                                contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.content_desc_selected),
                                 tint = BrandAccent,
                                 modifier = Modifier.size(32.dp).background(Color.White, androidx.compose.foundation.shape.CircleShape)
                             )
@@ -250,7 +250,7 @@ fun VideoGridItem(
                              // Empty circle for unselected hint
                              Icon(
                                 imageVector = Icons.Outlined.RadioButtonUnchecked,
-                                contentDescription = "Unselected",
+                                contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.content_desc_unselected),
                                 tint = Color.White.copy(alpha = 0.8f),
                                 modifier = Modifier.size(32.dp)
                             )
@@ -400,14 +400,14 @@ fun VideoListItem(
                         if (isSelected) {
                             Icon(
                                 imageVector = Icons.Default.CheckCircle,
-                                contentDescription = "Selected",
+                                contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.content_desc_selected),
                                 tint = BrandAccent,
                                 modifier = Modifier.size(24.dp).background(Color.White, androidx.compose.foundation.shape.CircleShape)
                             )
                         } else {
                              Icon(
                                 imageVector = Icons.Outlined.RadioButtonUnchecked,
-                                contentDescription = "Unselected",
+                                contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.content_desc_unselected),
                                 tint = Color.White.copy(alpha = 0.7f),
                                 modifier = Modifier.size(24.dp)
                             )
@@ -421,7 +421,7 @@ fun VideoListItem(
                  androidx.compose.material3.IconButton(onClick = { /* TODO: Show options menu */ }) {
                      Icon(
                         imageVector = Icons.Default.MoreVert,
-                        contentDescription = "More",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.content_desc_more_options),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(Dimens.IconMedium)
                     )

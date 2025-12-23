@@ -148,7 +148,7 @@ fun FolderListItem(
                 } else {
                     Icon(
                         imageVector = Icons.Outlined.Folder,
-                        contentDescription = null,
+                        contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.content_desc_folder_placeholder),
                         modifier = Modifier.size(Dimens.IconLarge),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -165,14 +165,14 @@ fun FolderListItem(
                         if (isSelected) {
                             Icon(
                                 imageVector = Icons.Default.CheckCircle,
-                                contentDescription = "Selected",
+                                contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.content_desc_selected),
                                 tint = BrandAccent,
                                 modifier = Modifier.size(24.dp)
                             )
                         } else {
                              Icon(
                                 imageVector = Icons.Outlined.RadioButtonUnchecked,
-                                contentDescription = "Unselected",
+                                contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.content_desc_unselected),
                                 tint = Color.White.copy(alpha = 0.7f),
                                 modifier = Modifier.size(24.dp)
                             )
@@ -185,7 +185,7 @@ fun FolderListItem(
              if (!isSelectionMode) {
                  Icon(
                     imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-                    contentDescription = null,
+                    contentDescription = null, // Decorative
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 )
             }

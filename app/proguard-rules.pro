@@ -45,3 +45,17 @@
 -keepclassmembers class kotlinx.coroutines.android.AndroidExceptionPreHandler {
     <init>();
 }
+
+# OkHttp
+-dontwarn okhttp3.**
+-keep class okhttp3.** { *; }
+
+# NanoHTTPD
+-keep class fi.iki.elonen.** { *; }
+
+# Google Cast
+-keep class com.google.android.gms.cast.** { *; }
+
+# Firebase Crashlytics
+-keepattributes SourceFile,LineNumberTable
+-keep public class * extends java.lang.Exception

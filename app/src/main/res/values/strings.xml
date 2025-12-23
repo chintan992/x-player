@@ -22,4 +22,47 @@
     <string name="action_copy">Copy</string>
     <string name="action_cancel">Cancel</string>
     <string name="delete_confirmation">Are you sure you want to delete %1$d items?</string>
+
+    <!-- Player Accessibility -->
+    <string name="player_back">Back</string>
+    <string name="player_subtitles">Subtitles</string>
+    <string name="player_audio">Audio</string>
+    <string name="player_speed">Playback Speed</string>
+    <string name="player_cast_watch">Cast to Watch</string>
+    <string name="player_cast_app_missing">Watch found but app not installed/open.</string>
+    <string name="player_cast_no_device">No watch connected</string>
+    <string name="player_cast_select_device">Select Watch</string>
+    <string name="player_settings">Settings</string>
+    <string name="player_rewind_10">Rewind 10 seconds</string>
+    <string name="player_forward_10">Forward 10 seconds</string>
+    <string name="player_play">Play</string>
+    <string name="player_pause">Pause</string>
+    <string name="player_lock">Lock Controls</string>
+    <string name="player_unlock">Unlock Controls</string>
+    <string name="player_previous">Previous Video</string>
+    <string name="player_next">Next Video</string>
+    <string name="player_aspect_ratio">Aspect Ratio</string>
+    <string name="player_pip">Picture in Picture</string>
+    <string name="player_landscape">Switch to Landscape</string>
+    <string name="player_portrait">Switch to Portrait</string>
+
+
+
+    <!-- Library Accessibility -->
+    <string name="content_desc_selected">Selected</string>
+    <string name="content_desc_unselected">Unselected</string>
+    <string name="content_desc_more_options">More Options</string>
+    <string name="content_desc_folder_placeholder">Folder</string>
+    <string name="content_desc_close_selection">Close Selection</string>
+
+    <!-- Privacy Policy -->
+    <string name="privacy_policy_title">Privacy Policy</string>
+    <string name="privacy_policy_intro">We value your privacy. Please review and accept our policy to use X Player.</string>
+    <string name="privacy_policy_permissions_title">Permissions Usage:</string>
+    <string name="privacy_policy_storage_permission">Storage: Used to display and manage your local video files.</string>
+    <string name="privacy_policy_network_permission">Network: Used for casting media to devices.</string>
+    <string name="privacy_policy_data_collection_title">Data Collection:</string>
+    <string name="privacy_policy_analytics">App Stability: We use Firebase Crashlytics to collect crash reports to improve app stability. No personal media files are ever uploaded.</string>
+    <string name="privacy_policy_accept_btn">I Accept</string>
+    <string name="privacy_policy_scroll_hint">Please scroll to the bottom to accept</string>
 </resources>

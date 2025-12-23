@@ -103,7 +103,7 @@ fun LockedOverlay(onUnlock: () -> Unit) {
         ) {
             Icon(
                 imageVector = Icons.Default.Lock,
-                contentDescription = "Unlock",
+                contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.player_unlock),
                 tint = Color.White,
                 modifier = Modifier.size(32.dp)
             )

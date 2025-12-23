@@ -47,7 +47,7 @@ fun BottomControls(
             IconButton(onClick = onLockClick) {
                 Icon(
                     imageVector = Icons.Outlined.LockOpen,
-                    contentDescription = "Lock Screen",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.player_lock),
                     tint = Color.White
                 )
             }
@@ -57,7 +57,7 @@ fun BottomControls(
             IconButton(onClick = onPreviousClick) {
                 Icon(
                     imageVector = Icons.Default.SkipPrevious,
-                    contentDescription = "Previous Video",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.player_previous),
                     tint = Color.White
                 )
             }
@@ -65,7 +65,7 @@ fun BottomControls(
             IconButton(onClick = onNextClick) {
                 Icon(
                     imageVector = Icons.Default.SkipNext,
-                    contentDescription = "Next Video",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.player_next),
                     tint = Color.White
                 )
             }
@@ -83,7 +83,7 @@ fun BottomControls(
             ) {
                 Icon(
                     imageVector = Icons.Outlined.AspectRatio,
-                    contentDescription = "Aspect Ratio",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.player_aspect_ratio),
                     tint = Color.White,
                     modifier = Modifier.size(24.dp)
                 )
@@ -100,7 +100,10 @@ fun BottomControls(
             IconButton(onClick = onOrientationClick) {
                 Icon(
                     imageVector = Icons.Outlined.ScreenRotation,
-                    contentDescription = if (isLandscape) "Switch to Portrait" else "Switch to Landscape",
+                    contentDescription = if (isLandscape) 
+                        androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.player_portrait) 
+                    else 
+                        androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.player_landscape),
                     tint = Color.White
                 )
             }
@@ -109,7 +112,7 @@ fun BottomControls(
             IconButton(onClick = onPipClick) {
                 Icon(
                     imageVector = Icons.Outlined.PictureInPicture,
-                    contentDescription = "Picture in Picture",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.player_pip),
                     tint = Color.White
                 )
             }

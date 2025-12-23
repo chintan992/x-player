@@ -9,6 +9,11 @@ object PlaylistManager {
         currentVideoIndex = startIndex
     }
     
+    fun clearPlaylist() {
+        currentPlaylist = emptyList()
+        currentVideoIndex = 0
+    }
+    
     fun getCurrentVideo(): VideoItem? {
         if (currentPlaylist.isNotEmpty() && currentVideoIndex in currentPlaylist.indices) {
             return currentPlaylist[currentVideoIndex]
