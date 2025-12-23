@@ -1,0 +1,66 @@
+<resources>
+    <string name="app_name">X Player</string>
+    <string name="title_folders">फ़ोल्डर्स</string>
+    <string name="title_all_videos">सभी वीडियो</string>
+    <string name="action_back">वापस</string>
+    <string name="action_settings">सेटिंग्स</string>
+    <string name="action_switch_folder_view">फ़ोल्डर व्यू बदलें</string>
+    <string name="action_switch_all_videos">सभी वीडियो देखें</string>
+    <string name="empty_folders">कोई फ़ोल्डर नहीं मिला</string>
+    <string name="empty_videos_folder">इस फ़ोल्डर में कोई वीडियो नहीं है</string>
+    <string name="empty_videos">कोई वीडियो नहीं मिला</string>
+    <string name="empty_state_message">आपके डिवाइस के वीडियो यहाँ दिखाई देंगे</string>
+    <string name="title_video_library">वीडियो लाइब्रेरी</string>
+    <string name="permission_required">अनुमति आवश्यक</string>
+    <string name="permission_rationale">अपने वीडियो देखने के लिए स्टोरेज एक्सेस दें</string>
+    <string name="permission_grant">अनुमति दें</string>
+    <string name="dialog_view_settings">व्यू सेटिंग्स</string>
+    <string name="settings_display">प्रदर्शन</string>
+    <string name="action_rename">नाम बदलें</string>
+    <string name="action_delete">हटाएं</string>
+    <string name="action_move">मूव करें</string>
+    <string name="action_copy">कॉपी करें</string>
+    <string name="action_cancel">रद्द करें</string>
+    <string name="delete_confirmation">क्या आप वाकई %1$d आइटम हटाना चाहते हैं?</string>
+
+    <!-- Player Accessibility -->
+    <string name="player_back">वापस</string>
+    <string name="player_subtitles">उपशीर्षक</string>
+    <string name="player_audio">ऑडियो</string>
+    <string name="player_speed">प्लेबैक गति</string>
+    <string name="player_cast_watch">वॉच पर कास्ट करें</string>
+    <string name="player_cast_app_missing">वॉच मिली लेकिन ऐप इन्सटाल्ड/ओपन नहीं है।</string>
+    <string name="player_cast_no_device">कोई वॉच कनेक्ट नहीं है</string>
+    <string name="player_cast_select_device">वॉच चुनें</string>
+    <string name="player_settings">सेटिंग्स</string>
+    <string name="player_rewind_10">10 सेकंड पीछे</string>
+    <string name="player_forward_10">10 सेकंड आगे</string>
+    <string name="player_play">प्ले</string>
+    <string name="player_pause">पॉज़</string>
+    <string name="player_lock">कंट्रोल्स लॉक करें</string>
+    <string name="player_unlock">कंट्रोल्स अनलॉक करें</string>
+    <string name="player_previous">पिछला वीडियो</string>
+    <string name="player_next">अगला वीडियो</string>
+    <string name="player_aspect_ratio">आस्पेक्ट रेशियो</string>
+    <string name="player_pip">पिक्चर इन पिक्चर</string>
+    <string name="player_landscape">लैंडस्केप में बदलें</string>
+    <string name="player_portrait">पोर्ट्रेट में बदलें</string>
+
+    <!-- Library Accessibility -->
+    <string name="content_desc_selected">चयनित</string>
+    <string name="content_desc_unselected">अचयनित</string>
+    <string name="content_desc_more_options">अधिक विकल्प</string>
+    <string name="content_desc_folder_placeholder">फ़ोल्डर</string>
+    <string name="content_desc_close_selection">चयन बंद करें</string>
+
+    <!-- Privacy Policy -->
+    <string name="privacy_policy_title">गोपनीयता नीति</string>
+    <string name="privacy_policy_intro">हम आपकी गोपनीयता का महत्व समझते हैं। कृपया X Player का उपयोग करने के लिए हमारी नीति की समीक्षा करें और स्वीकार करें।</string>
+    <string name="privacy_policy_permissions_title">अनुमतियों का उपयोग:</string>
+    <string name="privacy_policy_storage_permission">स्टोरेज: आपके स्थानीय वीडियो फ़ाइलों को प्रदर्शित करने और प्रबंधित करने के लिए उपयोग किया जाता है।</string>
+    <string name="privacy_policy_network_permission">नेटवर्क: उपकरणों पर मीडिया कास्ट करने के लिए उपयोग किया जाता है।</string>
+    <string name="privacy_policy_data_collection_title">डेटा संग्रह:</string>
+    <string name="privacy_policy_analytics">ऐप स्थिरता: हम ऐप की स्थिरता में सुधार के लिए क्रैश रिपोर्ट एकत्र करने के लिए Firebase Crashlytics का उपयोग करते हैं। कोई भी व्यक्तिगत मीडिया फ़ाइल कभी अपलोड नहीं की जाती है।</string>
+    <string name="privacy_policy_accept_btn">मैं स्वीकार करता हूँ</string>
+    <string name="privacy_policy_scroll_hint">कृपया स्वीकार करने के लिए नीचे स्क्रॉल करें</string>
+</resources>

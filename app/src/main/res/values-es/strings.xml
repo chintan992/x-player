@@ -1,0 +1,66 @@
+<resources>
+    <string name="app_name">X Player</string>
+    <string name="title_folders">Carpetas</string>
+    <string name="title_all_videos">Todos los videos</string>
+    <string name="action_back">Atrás</string>
+    <string name="action_settings">Configuración</string>
+    <string name="action_switch_folder_view">Cambiar a vista de carpetas</string>
+    <string name="action_switch_all_videos">Cambiar a todos los videos</string>
+    <string name="empty_folders">No se encontraron carpetas</string>
+    <string name="empty_videos_folder">No hay videos en esta carpeta</string>
+    <string name="empty_videos">No se encontraron videos</string>
+    <string name="empty_state_message">Los videos de tu dispositivo aparecerán aquí</string>
+    <string name="title_video_library">Biblioteca de videos</string>
+    <string name="permission_required">Permiso requerido</string>
+    <string name="permission_rationale">Conceder acceso al almacenamiento para ver tus videos</string>
+    <string name="permission_grant">Conceder permiso</string>
+    <string name="dialog_view_settings">Configuración de vista</string>
+    <string name="settings_display">Visualización</string>
+    <string name="action_rename">Renombrar</string>
+    <string name="action_delete">Eliminar</string>
+    <string name="action_move">Mover</string>
+    <string name="action_copy">Copiar</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="delete_confirmation">¿Estás seguro de que quieres eliminar %1$d elementos?</string>
+
+    <!-- Player Accessibility -->
+    <string name="player_back">Atrás</string>
+    <string name="player_subtitles">Subtítulos</string>
+    <string name="player_audio">Audio</string>
+    <string name="player_speed">Velocidad de reproducción</string>
+    <string name="player_cast_watch">Transmitir a reloj</string>
+    <string name="player_cast_app_missing">Reloj encontrado pero aplicación no instalada/abierta.</string>
+    <string name="player_cast_no_device">Ningún reloj conectado</string>
+    <string name="player_cast_select_device">Seleccionar reloj</string>
+    <string name="player_settings">Configuración</string>
+    <string name="player_rewind_10">Retroceder 10 segundos</string>
+    <string name="player_forward_10">Avanzar 10 segundos</string>
+    <string name="player_play">Reproducir</string>
+    <string name="player_pause">Pausa</string>
+    <string name="player_lock">Bloquear controles</string>
+    <string name="player_unlock">Desbloquear controles</string>
+    <string name="player_previous">Video anterior</string>
+    <string name="player_next">Siguiente video</string>
+    <string name="player_aspect_ratio">Relación de aspecto</string>
+    <string name="player_pip">Imagen en imagen</string>
+    <string name="player_landscape">Cambiar a horizontal</string>
+    <string name="player_portrait">Cambiar a vertical</string>
+
+    <!-- Library Accessibility -->
+    <string name="content_desc_selected">Seleccionado</string>
+    <string name="content_desc_unselected">No seleccionado</string>
+    <string name="content_desc_more_options">Más opciones</string>
+    <string name="content_desc_folder_placeholder">Carpeta</string>
+    <string name="content_desc_close_selection">Cerrar selección</string>
+
+    <!-- Privacy Policy -->
+    <string name="privacy_policy_title">Política de privacidad</string>
+    <string name="privacy_policy_intro">Valoramos tu privacidad. Por favor revisa y acepta nuestra política para usar X Player.</string>
+    <string name="privacy_policy_permissions_title">Uso de permisos:</string>
+    <string name="privacy_policy_storage_permission">Almacenamiento: Usado para mostrar y gestionar tus archivos de video locales.</string>
+    <string name="privacy_policy_network_permission">Red: Usado para transmitir contenido a dispositivos.</string>
+    <string name="privacy_policy_data_collection_title">Recopilación de datos:</string>
+    <string name="privacy_policy_analytics">Estabilidad de la App: Usamos Firebase Crashlytics para recolectar reportes de fallos y mejorar la estabilidad. Nunca se suben archivos multimedia personales.</string>
+    <string name="privacy_policy_accept_btn">Acepto</string>
+    <string name="privacy_policy_scroll_hint">Por favor desplázate hasta el final para aceptar</string>
+</resources>

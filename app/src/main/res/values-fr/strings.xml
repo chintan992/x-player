@@ -1,0 +1,66 @@
+<resources>
+    <string name="app_name">X Player</string>
+    <string name="title_folders">Dossiers</string>
+    <string name="title_all_videos">Toutes les vidéos</string>
+    <string name="action_back">Retour</string>
+    <string name="action_settings">Paramètres</string>
+    <string name="action_switch_folder_view">Passer à la vue dossier</string>
+    <string name="action_switch_all_videos">Passer à toutes les vidéos</string>
+    <string name="empty_folders">Aucun dossier trouvé</string>
+    <string name="empty_videos_folder">Aucune vidéo dans ce dossier</string>
+    <string name="empty_videos">Aucune vidéo trouvée</string>
+    <string name="empty_state_message">Les vidéos de votre appareil apparaîtront ici</string>
+    <string name="title_video_library">Vidéothèque</string>
+    <string name="permission_required">Permission requise</string>
+    <string name="permission_rationale">Accordez l\'accès au stockage pour voir vos vidéos</string>
+    <string name="permission_grant">Accorder la permission</string>
+    <string name="dialog_view_settings">Paramètres d\'affichage</string>
+    <string name="settings_display">Affichage</string>
+    <string name="action_rename">Renommer</string>
+    <string name="action_delete">Supprimer</string>
+    <string name="action_move">Déplacer</string>
+    <string name="action_copy">Copier</string>
+    <string name="action_cancel">Annuler</string>
+    <string name="delete_confirmation">Êtes-vous sûr de vouloir supprimer %1$d éléments ?</string>
+
+    <!-- Player Accessibility -->
+    <string name="player_back">Retour</string>
+    <string name="player_subtitles">Sous-titres</string>
+    <string name="player_audio">Audio</string>
+    <string name="player_speed">Vitesse de lecture</string>
+    <string name="player_cast_watch">Caster sur la montre</string>
+    <string name="player_cast_app_missing">Montre trouvée mais application non installée/ouverte.</string>
+    <string name="player_cast_no_device">Aucune montre connectée</string>
+    <string name="player_cast_select_device">Sélectionner une montre</string>
+    <string name="player_settings">Paramètres</string>
+    <string name="player_rewind_10">Reculer de 10s</string>
+    <string name="player_forward_10">Avancer de 10s</string>
+    <string name="player_play">Lire</string>
+    <string name="player_pause">Pause</string>
+    <string name="player_lock">Verrouiller les commandes</string>
+    <string name="player_unlock">Déverrouiller les commandes</string>
+    <string name="player_previous">Vidéo précédente</string>
+    <string name="player_next">Vidéo suivante</string>
+    <string name="player_aspect_ratio">Format d\'image</string>
+    <string name="player_pip">Image dans l\'image</string>
+    <string name="player_landscape">Passer en paysage</string>
+    <string name="player_portrait">Passer en portrait</string>
+
+    <!-- Library Accessibility -->
+    <string name="content_desc_selected">Sélectionné</string>
+    <string name="content_desc_unselected">Non sélectionné</string>
+    <string name="content_desc_more_options">Plus d\'options</string>
+    <string name="content_desc_folder_placeholder">Dossier</string>
+    <string name="content_desc_close_selection">Fermer la sélection</string>
+
+    <!-- Privacy Policy -->
+    <string name="privacy_policy_title">Politique de confidentialité</string>
+    <string name="privacy_policy_intro">Nous respectons votre vie privée. Veuillez consulter et accepter notre politique pour utiliser X Player.</string>
+    <string name="privacy_policy_permissions_title">Utilisation des permissions :</string>
+    <string name="privacy_policy_storage_permission">Stockage : Utilisé pour afficher et gérer vos fichiers vidéo locaux.</string>
+    <string name="privacy_policy_network_permission">Réseau : Utilisé pour diffuser des médias sur des appareils.</string>
+    <string name="privacy_policy_data_collection_title">Collecte de données :</string>
+    <string name="privacy_policy_analytics">Stabilité de l\'application : Nous utilisons Firebase Crashlytics pour collecter des rapports de plantage afin d\'améliorer la stabilité. Aucun fichier multimédia personnel n\'est jamais téléchargé.</string>
+    <string name="privacy_policy_accept_btn">J\'accepte</string>
+    <string name="privacy_policy_scroll_hint">Veuillez faire défiler jusqu\'en bas pour accepter</string>
+</resources>
