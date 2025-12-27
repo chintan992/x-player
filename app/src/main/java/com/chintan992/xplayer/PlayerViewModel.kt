@@ -15,10 +15,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
+
+
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
 
 data class TrackInfo(
     val index: Int,
@@ -28,19 +30,19 @@ data class TrackInfo(
     val isSelected: Boolean
 )
 
-enum class AspectRatioMode(val displayName: String, val ratio: Int) {
-    FIT(displayName = "Fit", ratio = 0),
-    FILL(displayName = "Fill", ratio = 1),
-    ZOOM(displayName = "Zoom", ratio = 2),
-    STRETCH(displayName = "Stretch", ratio = 3),
-    RATIO_16_9(displayName = "16:9", ratio = 4),
-    RATIO_4_3(displayName = "4:3", ratio = 5)
+enum class AspectRatioMode(val displayName: String) {
+    FIT(displayName = "Fit"),
+    FILL(displayName = "Fill"),
+    ZOOM(displayName = "Zoom"),
+    STRETCH(displayName = "Stretch"),
+    RATIO_16_9(displayName = "16:9"),
+    RATIO_4_3(displayName = "4:3")
 }
 
-enum class DecoderMode(val displayName: String) {
-    HARDWARE(displayName = "Hardware (HW)"),
-    SOFTWARE(displayName = "Software (SW)"),
-    AUTO(displayName = "Auto")
+enum class DecoderMode {
+    HARDWARE,
+    SOFTWARE,
+    AUTO
 }
 
 data class PlayerUiState(
@@ -308,10 +310,7 @@ class PlayerViewModel @Inject constructor(
         showControls()
     }
 
-    fun setAspectRatio(mode: AspectRatioMode) {
-        _uiState.value = _uiState.value.copy(aspectRatioMode = mode)
-        showControls()
-    }
+
 
     fun cycleDecoderMode() {
         val modes = DecoderMode.entries
@@ -399,7 +398,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun updateVolume(delta: Float) {
-        val newVolume = gestureHandler.calculateNewLevel(_uiState.value.volume, delta)
+        val newVolume = gestureHandler.calculateNewLevel(_uiState.value.volume, delta, PlayerConfig.MAX_VOLUME_BOOST)
         _uiState.value = _uiState.value.copy(
             volume = newVolume,
             showVolumeIndicator = true
@@ -459,40 +458,39 @@ class PlayerViewModel @Inject constructor(
         )
         currentVideoId = videoId
 
-        viewModelScope.launch {
-            // Check resume logic
-            var startPosition = 0L
-            var shouldPlay = true
+        // Check resume logic synchronously from cache
+        var startPosition = 0L
+        var shouldPlay = true
 
-            if (videoId != null) {
-                val mode = preferencesRepository.getResumeMode().first()
-                val savedPos = playbackPositionManager.getPosition(videoId)
-                val totalDuration = playbackPositionManager.getDuration(videoId)
+        if (videoId != null) {
+            val mode = preferencesRepository.cachedResumeMode.value
+            val history = playbackPositionManager.cachedPlaybackHistory.value[videoId]
+            val savedPos = history?.first ?: 0L
+            val totalDuration = history?.second ?: 0L
 
-                // Only consider resume if position is valid
-                if (savedPos > 5000 && (totalDuration <= 0 || savedPos < (totalDuration * 0.95).toLong())) {
-                    when (mode) {
-                        LibraryPreferencesRepository.ResumeMode.ALWAYS -> {
-                            startPosition = savedPos
-                        }
-                        LibraryPreferencesRepository.ResumeMode.ASK -> {
-                            // Defer playback until user chooses
-                            _uiState.value = _uiState.value.copy(
-                                showResumeDialog = true,
-                                resumePosition = savedPos
-                            )
-                            shouldPlay = false
-                        }
-                        LibraryPreferencesRepository.ResumeMode.NEVER -> {
-                            startPosition = 0L
-                        }
+            // Only consider resume if position is valid
+            if (savedPos > 5000 && (totalDuration <= 0 || savedPos < (totalDuration * 0.95).toLong())) {
+                when (mode) {
+                    LibraryPreferencesRepository.ResumeMode.ALWAYS -> {
+                        startPosition = savedPos
+                    }
+                    LibraryPreferencesRepository.ResumeMode.ASK -> {
+                        // Defer playback until user chooses
+                        _uiState.value = _uiState.value.copy(
+                            showResumeDialog = true,
+                            resumePosition = savedPos
+                        )
+                        shouldPlay = false
+                    }
+                    LibraryPreferencesRepository.ResumeMode.NEVER -> {
+                        startPosition = 0L
                     }
                 }
             }
+        }
 
-            if (shouldPlay) {
-                initiatePlayback(url, videoTitle, videoId, subtitleUri, startPosition)
-            }
+        if (shouldPlay) {
+            initiatePlayback(url, videoTitle, videoId, subtitleUri, startPosition)
         }
     }
 
@@ -581,7 +579,7 @@ class PlayerViewModel @Inject constructor(
                                     if (host != null) {
                                         headerStorage.addHeaders(host, config.headers)
                                     }
-                                } catch (e: Exception) {
+                                } catch (_: Exception) {
                                     // Ignore invalid URI for header storage purposes
                                 }
                             }
@@ -592,7 +590,7 @@ class PlayerViewModel @Inject constructor(
                         is com.chintan992.xplayer.resolver.Resource.Error -> {
                             _uiState.value = _uiState.value.copy(
                                 isResolving = false,
-                                resolvingError = resource.message ?: "Unknown error occurred"
+                                resolvingError = resource.message
                             )
                         }
                     }
@@ -616,7 +614,7 @@ class PlayerViewModel @Inject constructor(
                     if (host != null) {
                         headerStorage.addHeaders(host, headers)
                     }
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     // Ignore
                 }
             }

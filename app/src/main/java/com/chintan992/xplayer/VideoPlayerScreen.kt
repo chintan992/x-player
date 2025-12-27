@@ -1,52 +1,55 @@
+@file:androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+@file:Suppress("UNUSED_VALUE", "UNUSED_VARIABLE")
+
 package com.chintan992.xplayer
 
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.Canvas
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import com.chintan992.xplayer.ui.theme.BrandAccent
+
+
 import com.chintan992.xplayer.ui.theme.CinemaTheme
+
 import com.chintan992.xplayer.player.ui.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.compose.material.icons.filled.FastForward
+import androidx.compose.material.icons.rounded.WbSunny
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
+import androidx.core.net.toUri
+import android.net.Uri
 
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.material.icons.outlined.Watch
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import android.widget.Toast
-import android.net.Uri
+
 import com.chintan992.xplayer.cast.WearableHelper
 import android.app.Activity
 import android.content.Context
 import android.content.pm.ActivityInfo
-import android.view.ContextThemeWrapper
 import android.media.AudioManager
-import android.provider.Settings
 import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
-import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.input.pointer.changedToUp
-import androidx.compose.foundation.layout.Arrangement
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -55,56 +58,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AspectRatio
-import androidx.compose.material.icons.filled.BrightnessHigh
-import androidx.compose.material.icons.filled.BrightnessLow
-import androidx.compose.material.icons.filled.BrightnessMedium
-import androidx.compose.material.icons.filled.FastForward
-import androidx.compose.material.icons.filled.FastRewind
-import androidx.compose.material.icons.filled.Headphones
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.LockOpen
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.SkipPrevious
-import androidx.compose.material.icons.filled.ScreenRotation
-import androidx.compose.material.icons.filled.SlowMotionVideo
-import androidx.compose.material.icons.filled.Memory
-import androidx.compose.material.icons.filled.Subtitles
-import androidx.compose.material.icons.filled.VolumeDown
-import androidx.compose.material.icons.filled.VolumeMute
-import androidx.compose.material.icons.filled.VolumeUp
-import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.ui.window.Dialog
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
-import androidx.compose.material3.Surface
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material.icons.automirrored.outlined.*
-import androidx.compose.material.icons.rounded.WbSunny
-import androidx.compose.material.icons.automirrored.rounded.VolumeUp
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -116,28 +72,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.key
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.ui.text.style.TextAlign
+
 
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withTimeout
-import kotlinx.coroutines.TimeoutCancellationException
 
 
 import android.view.ViewGroup
@@ -146,8 +95,7 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.media3.ui.AspectRatioFrameLayout
+
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -159,8 +107,8 @@ fun VideoPlayerScreen(
     subtitleUri: Uri?,
     onBackPressed: () -> Unit,
     onEnterPip: () -> Unit,
-    animatedVisibilityScope: AnimatedVisibilityScope,
-    sharedTransitionScope: SharedTransitionScope,
+    @Suppress("UNUSED_PARAMETER") animatedVisibilityScope: AnimatedVisibilityScope,
+    @Suppress("UNUSED_PARAMETER") sharedTransitionScope: SharedTransitionScope,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -197,7 +145,7 @@ fun VideoPlayerScreen(
             } else if (nodes.size == 1) {
                 // Auto-cast to single device
                 if (videoUri != null) {
-                    WearableHelper.castVideoToWatch(context, Uri.parse(videoUri), uiState.videoTitle, nodes.first().id)
+                    WearableHelper.castVideoToWatch(context, videoUri.toUri(), uiState.videoTitle, nodes.first().id)
                 }
             } else {
                 // Multiple devices, show picker
@@ -220,7 +168,7 @@ fun VideoPlayerScreen(
                                 showDeviceDialog = false
                                 scope.launch {
                                     if (videoUri != null) {
-                                        WearableHelper.castVideoToWatch(context, Uri.parse(videoUri), uiState.videoTitle, node.id)
+                                        WearableHelper.castVideoToWatch(context, videoUri.toUri(), uiState.videoTitle, node.id)
                                     }
                                 }
                             },
@@ -338,14 +286,14 @@ fun VideoPlayerScreen(
     }
 
     // Hide indicators after delay
-    LaunchedEffect(uiState.showBrightnessIndicator) {
+    LaunchedEffect(uiState.showBrightnessIndicator, uiState.brightness) {
         if (uiState.showBrightnessIndicator) {
             delay(1000)
             viewModel.hideBrightnessIndicator()
         }
     }
 
-    LaunchedEffect(uiState.showVolumeIndicator) {
+    LaunchedEffect(uiState.showVolumeIndicator, uiState.volume) {
         if (uiState.showVolumeIndicator) {
             delay(1000)
             viewModel.hideVolumeIndicator()
@@ -367,8 +315,8 @@ fun VideoPlayerScreen(
                             this.player = player
                             useController = false
                             keepScreenOn = true
-                            setShowBuffering(androidx.media3.ui.PlayerView.SHOW_BUFFERING_NEVER)
-                            resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+                            setShowBuffering(PlayerView.SHOW_BUFFERING_NEVER)
+                            resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                             layoutParams = FrameLayout.LayoutParams(
                                 ViewGroup.LayoutParams.MATCH_PARENT,
                                 ViewGroup.LayoutParams.MATCH_PARENT
@@ -377,12 +325,12 @@ fun VideoPlayerScreen(
                     },
                     update = { playerView ->
                         playerView.resizeMode = when (uiState.aspectRatioMode) {
-                            AspectRatioMode.FIT -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
-                            AspectRatioMode.FILL -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                            AspectRatioMode.ZOOM -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                            AspectRatioMode.STRETCH -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL
-                            AspectRatioMode.RATIO_16_9 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
-                            AspectRatioMode.RATIO_4_3 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
+                            AspectRatioMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+                            AspectRatioMode.FILL -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                            AspectRatioMode.ZOOM -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                            AspectRatioMode.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+                            AspectRatioMode.RATIO_16_9 -> AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
+                            AspectRatioMode.RATIO_4_3 -> AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
                         }
                     }
                 )
@@ -408,7 +356,6 @@ fun VideoPlayerScreen(
         var startDragX by remember { mutableFloatStateOf(0f) }
         var doubleTapSide by remember { mutableStateOf<DoubleTapSide?>(null) }
         var doubleTapKey by remember { mutableIntStateOf(0) }
-        var isLongPressing by remember { mutableStateOf(false) }
 
         Box(
             modifier = Modifier
@@ -448,7 +395,7 @@ fun VideoPlayerScreen(
                                 delay(500) // Long press timeout
                                 if (!dragStarted) {
                                     longPressTriggered = true
-                                    isLongPressing = true
+                                    // isLongPressing = true // Variable removed as unused
                                     viewModel.startSpeedOverride()
                                 }
                             }
@@ -512,7 +459,7 @@ fun VideoPlayerScreen(
                                 longPressJob.cancel()
                                 if (longPressTriggered) {
                                     viewModel.stopSpeedOverride()
-                                    isLongPressing = false
+                                    // isLongPressing = false // Variable removed as unused
                                 }
                                 if (dragStarted) {
                                     viewModel.endSeeking()
@@ -569,7 +516,8 @@ fun VideoPlayerScreen(
         ) {
             GestureIndicator(
                 value = uiState.volume,
-                icon = Icons.AutoMirrored.Rounded.VolumeUp
+                icon = Icons.AutoMirrored.Rounded.VolumeUp,
+                max = PlayerConfig.MAX_VOLUME_BOOST
             )
         }
 

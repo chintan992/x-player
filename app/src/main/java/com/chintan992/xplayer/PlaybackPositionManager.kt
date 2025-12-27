@@ -9,6 +9,12 @@ import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -18,6 +24,24 @@ private val Context.playbackDataStore: DataStore<Preferences> by preferencesData
 class PlaybackPositionManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    // Cache of VideoID -> (Position, Duration)
+    val cachedPlaybackHistory: StateFlow<Map<String, Pair<Long, Long>>> = context.playbackDataStore.data
+        .map { preferences ->
+            val result = mutableMapOf<String, Pair<Long, Long>>()
+            preferences.asMap().forEach { (key, value) ->
+                if (key.name.startsWith("pos_")) {
+                    val vidId = key.name.removePrefix("pos_")
+                    val position = value as? Long ?: 0L
+                    val duration = preferences[longPreferencesKey("dur_$vidId")] ?: 0L
+                    result[vidId] = Pair(position, duration)
+                }
+            }
+            result.toMap()
+        }
+        .stateIn(scope, SharingStarted.Eagerly, emptyMap())
+
     
     /**
      * Save the playback position for a video
@@ -40,25 +64,9 @@ class PlaybackPositionManager @Inject constructor(
         }
     }
     
-    /**
-     * Get saved playback position for a video
-     * @return Position in milliseconds, or 0 if not found
-     */
-    suspend fun getPosition(videoId: String): Long {
-        return context.playbackDataStore.data.map { preferences ->
-            preferences[longPreferencesKey("pos_$videoId")] ?: 0L
-        }.first()
-    }
+
     
-    /**
-     * Get saved duration for a video
-     * @return Duration in milliseconds, or 0 if not found
-     */
-    suspend fun getDuration(videoId: String): Long {
-        return context.playbackDataStore.data.map { preferences ->
-            preferences[longPreferencesKey("dur_$videoId")] ?: 0L
-        }.first()
-    }
+
     
     /**
      * Clear saved position for a video

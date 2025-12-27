@@ -11,11 +11,19 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import java.io.IOException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 class LibraryPreferencesRepository @Inject constructor(
     private val dataStore: DataStore<Preferences>
 ) {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     private object PreferencesKeys {
         val LAYOUT_TYPE = stringPreferencesKey("layout_type")
         val SORT_BY = stringPreferencesKey("sort_by")
@@ -101,7 +109,12 @@ class LibraryPreferencesRepository @Inject constructor(
         }
     }
 
-    suspend fun getResumeMode(): Flow<ResumeMode> = dataStore.data.map { preferences ->
+
+
+    val cachedResumeMode: StateFlow<ResumeMode> = getResumeModeFlow()
+        .stateIn(scope, SharingStarted.Eagerly, ResumeMode.ASK)
+
+    private fun getResumeModeFlow(): Flow<ResumeMode> = dataStore.data.map { preferences ->
         ResumeMode.valueOf(
             preferences[PreferencesKeys.RESUME_MODE] ?: ResumeMode.ASK.name
         )

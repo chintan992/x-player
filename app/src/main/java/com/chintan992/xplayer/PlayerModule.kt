@@ -1,3 +1,5 @@
+@file:androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+
 package com.chintan992.xplayer
 
 import android.content.Context
@@ -40,6 +42,7 @@ object PlayerModule {
 
     @Provides
     @Singleton
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
     fun provideExoPlayer(
         @ApplicationContext context: Context,
         okHttpClient: OkHttpClient
@@ -56,9 +59,10 @@ object PlayerModule {
             .setBufferDurationsMs(
                 15000, // minBufferMs
                 50000, // maxBufferMs
-                500,   // bufferForPlaybackMs (Start playing after 500ms buffered)
+                250,   // bufferForPlaybackMs (Reduced to 250ms for faster start)
                 1000   // bufferForPlaybackAfterRebufferMs
             )
+            .setPrioritizeTimeOverSizeThresholds(true)
             .build()
 
         // Use DefaultRenderersFactory to enable extension renderers (like FFmpeg)

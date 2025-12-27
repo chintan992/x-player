@@ -3,9 +3,8 @@ package com.chintan992.xplayer
 object PlayerConfig {
     // Playback
     const val SEEK_INCREMENT_MS = 10_000L // 10 seconds
-    const val PROGRESS_UPDATE_INTERVAL_MS = 500L
-    const val CONTROLS_VISIBILITY_DURATION_MS = 3_000L
-    const val SPEED_OVERRIDE_VALUE = 2.0f
+
+    const val MAX_VOLUME_BOOST = 2.0f
     
     // Picture-in-Picture
     // Android valid range is ~1/2.39 to 2.39/1

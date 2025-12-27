@@ -6,8 +6,8 @@ import javax.inject.Inject
 
 class GestureHandler @Inject constructor() {
 
-    fun calculateNewLevel(currentLevel: Float, delta: Float): Float {
-        return (currentLevel + delta).coerceIn(0f, 1f)
+    fun calculateNewLevel(currentLevel: Float, delta: Float, maxLevel: Float = 1f): Float {
+        return (currentLevel + delta).coerceIn(0f, maxLevel)
     }
 
     fun applyVolume(player: ExoPlayer?, volume: Float) {
