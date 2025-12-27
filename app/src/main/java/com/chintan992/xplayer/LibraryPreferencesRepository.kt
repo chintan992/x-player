@@ -29,6 +29,13 @@ class LibraryPreferencesRepository @Inject constructor(
         val FIELD_PATH = booleanPreferencesKey("field_path")
         val FIELD_DATE = booleanPreferencesKey("field_date")
         val FIELD_EXTENSION = booleanPreferencesKey("field_extension")
+
+        // Playback
+        val RESUME_MODE = stringPreferencesKey("resume_mode")
+    }
+
+    enum class ResumeMode {
+        ASK, ALWAYS, NEVER
     }
 
     val folderViewSettings: Flow<FolderViewSettings> = dataStore.data
@@ -86,6 +93,18 @@ class LibraryPreferencesRepository @Inject constructor(
             date?.let { preferences[PreferencesKeys.FIELD_DATE] = it }
             fileExtension?.let { preferences[PreferencesKeys.FIELD_EXTENSION] = it }
         }
+    }
+
+    suspend fun updateResumeMode(mode: ResumeMode) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.RESUME_MODE] = mode.name
+        }
+    }
+
+    suspend fun getResumeMode(): Flow<ResumeMode> = dataStore.data.map { preferences ->
+        ResumeMode.valueOf(
+            preferences[PreferencesKeys.RESUME_MODE] ?: ResumeMode.ASK.name
+        )
     }
 
     private fun mapPreferencesToSettings(preferences: Preferences): FolderViewSettings {

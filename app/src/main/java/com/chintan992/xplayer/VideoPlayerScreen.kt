@@ -99,6 +99,7 @@ import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material.icons.rounded.WbSunny
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -703,6 +704,58 @@ fun VideoPlayerScreen(
                 showSubtitleSearchDialog = false
             },
             onDismiss = { showSubtitleSearchDialog = false }
+        )
+    }
+
+    // Resume Dialog
+    if (uiState.showResumeDialog) {
+        var rememberChoice by remember { mutableStateOf(false) }
+
+        AlertDialog(
+            onDismissRequest = {
+                viewModel.startOver(videoUri ?: "", videoTitle, videoId, subtitleUri)
+            },
+            title = { Text("Resume Playback") },
+            text = {
+                Column {
+                    Text("Do you want to resume video from where you left off?")
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { rememberChoice = !rememberChoice }
+                            .padding(vertical = 8.dp)
+                    ) {
+                        Checkbox(
+                            checked = rememberChoice,
+                            onCheckedChange = { rememberChoice = it }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Remember my choice")
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.updateResumePreference(rememberChoice, isResume = true)
+                        viewModel.resumeVideo(videoUri ?: "", videoTitle, videoId, subtitleUri)
+                    }
+                ) {
+                    Text("Resume")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.updateResumePreference(rememberChoice, isResume = false)
+                        viewModel.startOver(videoUri ?: "", videoTitle, videoId, subtitleUri)
+                    }
+                ) {
+                    Text("Start Over")
+                }
+            }
         )
     }
 

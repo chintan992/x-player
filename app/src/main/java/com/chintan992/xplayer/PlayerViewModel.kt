@@ -15,6 +15,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -69,7 +70,10 @@ data class PlayerUiState(
     val isBuffering: Boolean = false,
     // Subtitle Search State
     val subtitleSearchResults: List<com.chintan992.xplayer.data.SubtitleResult> = emptyList(),
-    val isSearchingSubtitles: Boolean = false
+    val isSearchingSubtitles: Boolean = false,
+    // Resume Dialog State
+    val showResumeDialog: Boolean = false,
+    val resumePosition: Long = 0L
 )
 
 @HiltViewModel
@@ -77,7 +81,8 @@ class PlayerViewModel @Inject constructor(
     private val playbackPositionManager: PlaybackPositionManager,
     private val headerStorage: HeaderStorage,
     private val trackManager: TrackManager,
-    private val gestureHandler: GestureHandler
+    private val gestureHandler: GestureHandler,
+    private val preferencesRepository: LibraryPreferencesRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlayerUiState())
@@ -151,17 +156,6 @@ class PlayerViewModel @Inject constructor(
         updateTrackInfo()
         if (exoPlayer.isPlaying) {
             startPositionUpdates()
-        }
-        
-        // Restore saved position if available
-        videoId?.let { id ->
-            viewModelScope.launch {
-                val savedPosition = playbackPositionManager.getPosition(id)
-                if (savedPosition > 0 && savedPosition < exoPlayer.duration) {
-                    exoPlayer.seekTo(savedPosition)
-                    _uiState.value = _uiState.value.copy(currentPosition = savedPosition)
-                }
-            }
         }
     }
     
@@ -388,6 +382,8 @@ class PlayerViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
+        // Save position when clearing
+        saveCurrentPosition()
         player?.removeListener(playerListener)
         hideControlsJob?.cancel()
         positionUpdateJob?.cancel()
@@ -463,6 +459,44 @@ class PlayerViewModel @Inject constructor(
         )
         currentVideoId = videoId
 
+        viewModelScope.launch {
+            // Check resume logic
+            var startPosition = 0L
+            var shouldPlay = true
+
+            if (videoId != null) {
+                val mode = preferencesRepository.getResumeMode().first()
+                val savedPos = playbackPositionManager.getPosition(videoId)
+                val totalDuration = playbackPositionManager.getDuration(videoId)
+
+                // Only consider resume if position is valid
+                if (savedPos > 5000 && (totalDuration <= 0 || savedPos < (totalDuration * 0.95).toLong())) {
+                    when (mode) {
+                        LibraryPreferencesRepository.ResumeMode.ALWAYS -> {
+                            startPosition = savedPos
+                        }
+                        LibraryPreferencesRepository.ResumeMode.ASK -> {
+                            // Defer playback until user chooses
+                            _uiState.value = _uiState.value.copy(
+                                showResumeDialog = true,
+                                resumePosition = savedPos
+                            )
+                            shouldPlay = false
+                        }
+                        LibraryPreferencesRepository.ResumeMode.NEVER -> {
+                            startPosition = 0L
+                        }
+                    }
+                }
+            }
+
+            if (shouldPlay) {
+                initiatePlayback(url, videoTitle, videoId, subtitleUri, startPosition)
+            }
+        }
+    }
+
+    private fun initiatePlayback(url: String, videoTitle: String, videoId: String? = null, subtitleUri: android.net.Uri? = null, startPosition: Long) {
         // Check if this video is part of the current playlist in PlaylistManager
         val playlist = PlaylistManager.currentPlaylist
         val playlistIndex = if (videoId != null && playlist.isNotEmpty()) {
@@ -471,26 +505,50 @@ class PlayerViewModel @Inject constructor(
 
         if (playlistIndex != -1) {
             // Play from playlist
-            playPlaylist(playlist, playlistIndex)
+            playPlaylist(playlist, playlistIndex, startPosition)
         } else {
             // Single item flow (Resolution or Direct)
             val resolver = resolvers.find { it.canResolve(url) }
             
             if (resolver != null) {
-                resolveAndPlay(resolver, url, subtitleUri)
+                resolveAndPlay(resolver, url, subtitleUri, startPosition)
             } else {
                 // Treat as direct link
-                playDirectly(url, videoTitle, emptyMap(), subtitleUri)
+                playDirectly(url, videoTitle, emptyMap(), subtitleUri, startPosition)
             }
         }
     }
 
-    private fun playPlaylist(playlist: List<VideoItem>, startIndex: Int) {
+    fun resumeVideo(url: String, videoTitle: String, videoId: String?, subtitleUri: android.net.Uri?) {
+        _uiState.value = _uiState.value.copy(showResumeDialog = false)
+        initiatePlayback(url, videoTitle, videoId, subtitleUri, _uiState.value.resumePosition)
+    }
+
+    fun startOver(url: String, videoTitle: String, videoId: String?, subtitleUri: android.net.Uri?) {
+        _uiState.value = _uiState.value.copy(showResumeDialog = false)
+        viewModelScope.launch {
+            if (videoId != null) {
+                playbackPositionManager.clearPosition(videoId)
+            }
+            initiatePlayback(url, videoTitle, videoId, subtitleUri, 0L)
+        }
+    }
+
+    fun updateResumePreference(remember: Boolean, isResume: Boolean) {
+        if (remember) {
+            val mode = if (isResume) LibraryPreferencesRepository.ResumeMode.ALWAYS else LibraryPreferencesRepository.ResumeMode.NEVER
+            viewModelScope.launch {
+                preferencesRepository.updateResumeMode(mode)
+            }
+        }
+    }
+
+    private fun playPlaylist(playlist: List<VideoItem>, startIndex: Int, startPosition: Long) {
         player?.let { p ->
             val mediaItems = playlist.map { video ->
                 createMediaItem(video.uri.toString(), video.name, video.subtitleUri)
             }
-            p.setMediaItems(mediaItems, startIndex, 0L)
+            p.setMediaItems(mediaItems, startIndex, startPosition)
             p.prepare()
             p.play()
         }
@@ -500,7 +558,7 @@ class PlayerViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(resolvingError = null)
     }
 
-    private fun resolveAndPlay(resolver: com.chintan992.xplayer.resolver.StreamResolver, url: String, subtitleUri: android.net.Uri?) {
+    private fun resolveAndPlay(resolver: com.chintan992.xplayer.resolver.StreamResolver, url: String, subtitleUri: android.net.Uri?, startPosition: Long) {
         viewModelScope.launch {
             try {
                 resolver.resolve(url).collect { resource ->
@@ -529,7 +587,7 @@ class PlayerViewModel @Inject constructor(
                             }
 
                             // Play the resolved URL
-                            playDirectly(config.url, _uiState.value.videoTitle, config.headers, subtitleUri)
+                            playDirectly(config.url, _uiState.value.videoTitle, config.headers, subtitleUri, startPosition)
                         }
                         is com.chintan992.xplayer.resolver.Resource.Error -> {
                             _uiState.value = _uiState.value.copy(
@@ -549,7 +607,7 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    private fun playDirectly(url: String, title: String, headers: Map<String, String>, subtitleUri: android.net.Uri? = null) {
+    private fun playDirectly(url: String, title: String, headers: Map<String, String>, subtitleUri: android.net.Uri? = null, startPosition: Long) {
         player?.let { p ->
             // Note: Headers are handled by the Interceptor/HeaderStorage
             if (headers.isNotEmpty()) {
@@ -564,7 +622,7 @@ class PlayerViewModel @Inject constructor(
             }
 
             val mediaItem = createMediaItem(url, title, subtitleUri)
-            p.setMediaItem(mediaItem)
+            p.setMediaItem(mediaItem, startPosition)
             p.prepare()
             p.play()
         }
