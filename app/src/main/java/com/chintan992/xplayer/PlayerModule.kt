@@ -15,6 +15,10 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import javax.inject.Singleton
+import com.chintan992.xplayer.player.abstraction.UniversalPlayer
+import com.chintan992.xplayer.player.abstraction.ExoPlayerWrapper
+import com.chintan992.xplayer.player.abstraction.MPVPlayerWrapper
+import javax.inject.Named
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "library_preferences")
 
@@ -79,8 +83,20 @@ object PlayerModule {
 
     @Provides
     @Singleton
-    fun provideUniversalPlayer(wrapper: com.chintan992.xplayer.player.abstraction.ExoPlayerWrapper): com.chintan992.xplayer.player.abstraction.UniversalPlayer {
-        return wrapper
+    @javax.inject.Named("EXO")
+    fun provideExoPlayerWrapper(
+        player: ExoPlayer,
+        trackManager: com.chintan992.xplayer.player.logic.TrackManager,
+        headerStorage: HeaderStorage
+    ): UniversalPlayer {
+        return ExoPlayerWrapper(player, trackManager, headerStorage)
+    }
+
+    @Provides
+    @Singleton
+    @javax.inject.Named("MPV")
+    fun provideMpvPlayerWrapper(@ApplicationContext context: Context): UniversalPlayer {
+        return MPVPlayerWrapper(context)
     }
 
     @Provides

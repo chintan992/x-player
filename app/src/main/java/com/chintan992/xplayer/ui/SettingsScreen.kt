@@ -37,12 +37,73 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.compose.runtime.collectAsState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    navController: NavController
+    navController: NavController,
+    viewModel: SettingsViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
+    val defaultPlayerType by viewModel.defaultPlayerType.collectAsState()
+    var showPlayerDialog by remember { mutableStateOf(false) }
+
+    if (showPlayerDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showPlayerDialog = false },
+            title = { Text(text = "Select Default Player") },
+            text = {
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                viewModel.updateDefaultPlayerType("EXO")
+                                showPlayerDialog = false
+                            }
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        androidx.compose.material3.RadioButton(
+                            selected = defaultPlayerType == "EXO",
+                            onClick = { 
+                                viewModel.updateDefaultPlayerType("EXO")
+                                showPlayerDialog = false
+                            }
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("ExoPlayer (Recommended)")
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                viewModel.updateDefaultPlayerType("MPV")
+                                showPlayerDialog = false
+                            }
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        androidx.compose.material3.RadioButton(
+                            selected = defaultPlayerType == "MPV",
+                            onClick = { 
+                                viewModel.updateDefaultPlayerType("MPV")
+                                showPlayerDialog = false
+                            }
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("MPV Player")
+                    }
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { showPlayerDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -74,6 +135,13 @@ fun SettingsScreen(
             }
             
             SettingsSection(title = "Player") {
+                SettingsItem(
+                    icon = Icons.Outlined.PlayCircle,
+                    title = "Default Player",
+                    subtitle = if (defaultPlayerType == "MPV") "MPV Player" else "ExoPlayer",
+                    onClick = { showPlayerDialog = true }
+                )
+ 
                 SettingsItem(
                     icon = Icons.Outlined.PlayCircle,
                     title = "Default Playback Speed",

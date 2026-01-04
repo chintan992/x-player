@@ -1,5 +1,10 @@
 package com.chintan992.xplayer.library.ui
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -31,6 +36,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -89,22 +95,45 @@ fun FolderListItem(
 ) {
     val context = LocalContext.current
     
+    // Animated selection effects
+    val borderWidth by animateDpAsState(
+        targetValue = if (isSelected) 2.dp else 1.dp,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "folderBorderWidth"
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (isSelected) BrandAccent else OutlineVariantDark,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "folderBorderColor"
+    )
+    val containerColor by animateColorAsState(
+        targetValue = if (isSelected) BrandAccent.copy(alpha = 0.1f) else Color.Transparent,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "folderContainerColor"
+    )
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(80.dp) // Fixed height for consistency
+            .height(80.dp)
+            .animateContentSize(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
              )
             .border(
-                width = 1.dp, 
-                color = if (isSelected) BrandAccent else OutlineVariantDark, 
+                width = borderWidth, 
+                color = borderColor, 
                 shape = RoundedCornerShape(12.dp)
             ),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) BrandAccent.copy(alpha = 0.1f) else Color.Transparent // Outline style
+            containerColor = containerColor
         )
     ) {
         Row(

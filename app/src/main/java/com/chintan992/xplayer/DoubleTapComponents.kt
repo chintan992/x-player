@@ -1,8 +1,8 @@
 package com.chintan992.xplayer
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,13 +19,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 
 enum class DoubleTapSide { LEFT, RIGHT }
 
@@ -34,22 +37,41 @@ fun DoubleTapOverlay(
     side: DoubleTapSide,
     onDismiss: () -> Unit
 ) {
-    val composition = remember { Animatable(0f) }
+    // Use Animatable for the main composition progress
+    val alphaProgress = remember { Animatable(1f) }
+    // Separate animatable for the icon scale with spring
+    val iconScale = remember { Animatable(0.5f) }
     
     LaunchedEffect(side) {
-        composition.snapTo(0f)
-        composition.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing)
+        // Reset animations
+        alphaProgress.snapTo(1f)
+        iconScale.snapTo(0.5f)
+        
+        // Run both animations concurrently
+        launch {
+            // Spring animation for icon scale - bouncy entrance
+            iconScale.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium
+                )
+            )
+        }
+        
+        // Fade out with spring for natural feel
+        alphaProgress.animateTo(
+            targetValue = 0f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessLow
+            )
         )
         onDismiss()
     }
 
-    val alpha = 1f - composition.value
-    // Unused scale variable
-    // val scale = 1f + composition.value * 1.5f
-    // Unused variable
-    // val translationX = if (side == DoubleTapSide.LEFT) -50.dp else 50.dp
+    val alpha = alphaProgress.value
+    val scale = iconScale.value
 
     Box(
         modifier = Modifier
@@ -82,7 +104,12 @@ fun DoubleTapOverlay(
                     imageVector = if (side == DoubleTapSide.LEFT) Icons.Default.FastRewind else Icons.Default.FastForward,
                     contentDescription = null,
                     tint = Color.White.copy(alpha = alpha),
-                    modifier = Modifier.size(48.dp)
+                    modifier = Modifier
+                        .size(48.dp)
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                        }
                 )
                 Text(
                     text = "10s",

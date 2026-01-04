@@ -18,7 +18,11 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+import com.chintan992.xplayer.player.abstraction.PlayerType
+import javax.inject.Named
+
 data class PlayerUiState(
+    val playerType: PlayerType = PlayerType.EXO,
     val isPlaying: Boolean = false,
     val currentPosition: Long = 0L,
     val duration: Long = 0L,
@@ -54,8 +58,13 @@ class PlayerViewModel @Inject constructor(
     private val headerStorage: HeaderStorage,
     private val trackManager: TrackManager,
     private val gestureHandler: GestureHandler,
-    private val player: UniversalPlayer // Injected UniversalPlayer
+    private val playerPreferencesRepository: PlayerPreferencesRepository,
+    @Named("EXO") private val exoPlayer: UniversalPlayer,
+    @Named("MPV") private val mpvPlayer: UniversalPlayer
 ) : ViewModel() {
+    
+    // Active player instance (Public for View access to MPV surface)
+    var player: UniversalPlayer = exoPlayer
 
     private val _uiState = MutableStateFlow(PlayerUiState())
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
@@ -113,6 +122,20 @@ class PlayerViewModel @Inject constructor(
 
     init {
         player.addListener(playerListener)
+        
+        // Apply default player from settings
+        viewModelScope.launch {
+            playerPreferencesRepository.defaultPlayerType.collect { defaultType ->
+                val targetType = if (defaultType == "MPV") PlayerType.MPV else PlayerType.EXO
+                // Only switch if we haven't started playback yet and type differs
+                if (_uiState.value.playerType != targetType && currentMediaUri == null) {
+                    player.removeListener(playerListener)
+                    player = if (targetType == PlayerType.MPV) mpvPlayer else exoPlayer
+                    player.addListener(playerListener)
+                    _uiState.value = _uiState.value.copy(playerType = targetType)
+                }
+            }
+        }
     }
 
     fun setPlayer(videoTitle: String, videoId: String? = null) {
@@ -155,6 +178,46 @@ class PlayerViewModel @Inject constructor(
             playbackPositionManager.savePosition(id, position, duration)
         }
     }
+
+    // Store current media info for switching logic
+    private var currentMediaUri: android.net.Uri? = null
+    private var currentSubtitleUri: android.net.Uri? = null
+    private var currentHeaders: Map<String, String> = emptyMap()
+
+    fun switchPlayer(type: PlayerType) {
+        if (_uiState.value.playerType == type) return
+        
+        // Save current state
+        val wasPlaying = player.isPlaying()
+        val currentPos = player.getCurrentPosition()
+        
+        // Release current player listener
+        player.removeListener(playerListener)
+        player.pause() 
+        // DO NOT call release() here, as we reuse the instance when switching back!
+        
+        // Switch instance
+        player = when (type) {
+            PlayerType.EXO -> exoPlayer
+            PlayerType.MPV -> mpvPlayer
+        }
+        
+        _uiState.value = _uiState.value.copy(playerType = type)
+        
+        // Re-attach listener
+        player.addListener(playerListener)
+        
+        // Re-prepare player
+        val uri = currentMediaUri
+        if (uri != null) {
+            player.prepare(uri, _uiState.value.videoTitle, currentSubtitleUri, currentHeaders)
+            player.seekTo(currentPos)
+            if (wasPlaying) {
+                player.play()
+            }
+        }
+    }
+
 
     private fun updateTrackInfo() {
         val (audioTracks, subtitleTracks) = player.getTracks()
@@ -330,7 +393,9 @@ class PlayerViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         player.removeListener(playerListener)
-        player.release()
+        // Ensure playback stops but DO NOT release singletons
+        if (player.isPlaying()) player.pause()
+        
         hideControlsJob?.cancel()
         positionUpdateJob?.cancel()
     }
@@ -485,6 +550,12 @@ class PlayerViewModel @Inject constructor(
 
     private fun playDirectly(url: String, title: String, headers: Map<String, String>, subtitleUri: android.net.Uri? = null) {
         val uri = android.net.Uri.parse(url)
+        
+        // Save for switching
+        currentMediaUri = uri
+        currentHeaders = headers
+        currentSubtitleUri = subtitleUri
+        
         player.prepare(uri, title, subtitleUri, headers)
         player.play()
     }

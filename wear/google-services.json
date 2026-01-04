@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "603801503484",
+    "project_id": "x-player-15bbb",
+    "storage_bucket": "x-player-15bbb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:603801503484:android:1699a0a59e6e519c1bb979",
+        "android_client_info": {
+          "package_name": "com.chintan992.xplayer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBxw8jrZKeXn2vy-5V9tPkA7aLHSnzaxt4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

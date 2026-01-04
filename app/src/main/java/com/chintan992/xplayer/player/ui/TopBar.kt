@@ -45,6 +45,8 @@ fun TopBar(
     onAudioClick: () -> Unit,
     onSubtitleClick: () -> Unit,
     onWatchCastClick: () -> Unit,
+    onSwitchPlayerClick: () -> Unit,
+    playerType: com.chintan992.xplayer.player.abstraction.PlayerType = com.chintan992.xplayer.player.abstraction.PlayerType.EXO,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -96,7 +98,21 @@ fun TopBar(
                             DecoderMode.HARDWARE -> "HW"
                             DecoderMode.SOFTWARE -> "SW"
                             DecoderMode.AUTO -> "AU"
+                            DecoderMode.HARDWARE_STRICT -> "HS"
                         },
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        modifier = Modifier
+                            .background(Color.White.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+
+                // Player Switch Badge
+                TextButton(onClick = onSwitchPlayerClick) {
+                    Text(
+                        text = if (playerType == com.chintan992.xplayer.player.abstraction.PlayerType.EXO) "EXO" else "MPV",
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,

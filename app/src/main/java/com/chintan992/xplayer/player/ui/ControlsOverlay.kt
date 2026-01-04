@@ -39,7 +39,8 @@ fun ControlsOverlay(
     onAspectRatioClick: () -> Unit,
     onOrientationClick: () -> Unit,
     onPipClick: () -> Unit,
-    onWatchCastClick: () -> Unit
+    onWatchCastClick: () -> Unit,
+    onSwitchPlayerClick: () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         // Top gradient
@@ -91,6 +92,8 @@ fun ControlsOverlay(
             onAudioClick = onAudioClick,
             onSubtitleClick = onSubtitleClick,
             onWatchCastClick = onWatchCastClick,
+            onSwitchPlayerClick = onSwitchPlayerClick,
+            playerType = uiState.playerType,
             modifier = Modifier.align(Alignment.TopCenter)
         )
 

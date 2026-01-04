@@ -114,4 +114,5 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation(libs.play.services.wearable)
     implementation(libs.nanohttpd)
+    implementation(libs.mpv.android)
 }

@@ -360,16 +360,41 @@ fun VideoPlayerScreen(
                 .background(Color.Black)
         ) {
             with(sharedTransitionScope) {
+                if (uiState.playerType == com.chintan992.xplayer.player.abstraction.PlayerType.MPV) {
+                // MPV View
                 AndroidView(
+                    factory = { context ->
+                        com.chintan992.xplayer.player.ui.MPVAndroidView(context).apply {
+                            // MPV view setup if needed
+                        }
+                    },
+                    update = { view ->
+                        // Cast UniversalPlayer back to MPV wrapper to set surface delegate
+                        (viewModel.player as? com.chintan992.xplayer.player.abstraction.MPVPlayerWrapper)?.let { mpvWrapper ->
+                            view.player = mpvWrapper
+                        }
+                    },
                     modifier = Modifier
-                        .fillMaxSize(),
-                    factory = { ctx ->
-                        PlayerView(ctx).apply {
+                        .fillMaxSize()
+                        .clickable { viewModel.toggleControls() }
+                )
+            } else {
+                // ExoPlayer View
+                AndroidView(
+                    factory = { context ->
+                        PlayerView(context).apply {
                             this.player = player
                             useController = false
                             keepScreenOn = true
                             setShowBuffering(androidx.media3.ui.PlayerView.SHOW_BUFFERING_NEVER)
-                            resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+                            resizeMode = when (uiState.aspectRatioMode) {
+                                AspectRatioMode.FIT -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+                                AspectRatioMode.FILL -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                                AspectRatioMode.ZOOM -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                                AspectRatioMode.STRETCH -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL
+                                AspectRatioMode.RATIO_16_9 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
+                                AspectRatioMode.RATIO_4_3 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
+                            }
                             layoutParams = FrameLayout.LayoutParams(
                                 ViewGroup.LayoutParams.MATCH_PARENT,
                                 ViewGroup.LayoutParams.MATCH_PARENT
@@ -377,6 +402,7 @@ fun VideoPlayerScreen(
                         }
                     },
                     update = { playerView ->
+                        playerView.player = player
                         playerView.resizeMode = when (uiState.aspectRatioMode) {
                             AspectRatioMode.FIT -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
                             AspectRatioMode.FILL -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
@@ -385,8 +411,12 @@ fun VideoPlayerScreen(
                             AspectRatioMode.RATIO_16_9 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
                             AspectRatioMode.RATIO_4_3 -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
                         }
-                    }
+                    },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clickable { viewModel.toggleControls() }
                 )
+            }
             }
 
 
@@ -642,10 +672,19 @@ fun VideoPlayerScreen(
                     onSubtitleClick = onSubtitleClick,
                     onLockClick = onLockClick,
                     onAspectRatioClick = onAspectRatioClick,
-                    onOrientationClick = onOrientationClick,
+                    onOrientationClick = {
+                        viewModel.toggleOrientation()
+                    },
                     onPipClick = onEnterPip,
                     onWatchCastClick = {
                         handleCastClick()
+                    },
+                    onSwitchPlayerClick = {
+                        val newType = if (uiState.playerType == com.chintan992.xplayer.player.abstraction.PlayerType.EXO) 
+                            com.chintan992.xplayer.player.abstraction.PlayerType.MPV 
+                        else 
+                            com.chintan992.xplayer.player.abstraction.PlayerType.EXO
+                        viewModel.switchPlayer(newType)
                     }
                 )
             }

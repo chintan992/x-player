@@ -279,7 +279,8 @@ class MainActivity : ComponentActivity() {
     override fun onStop() {
         super.onStop()
         if (isFinishing) {
-            player.release()
+            // Do NOT release singleton player, just pause/stop
+            if (player.isPlaying) player.pause()
         }
     }
 

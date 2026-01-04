@@ -136,7 +136,6 @@ class WearMainActivity : ComponentActivity(), MessageClient.OnMessageReceivedLis
             val forwardButton = playerView.findViewById<View>(R.id.exo_ffwd)
             val playButton = playerView.findViewById<View>(R.id.exo_play)
             val pauseButton = playerView.findViewById<View>(R.id.exo_pause)
-            val backButton = playerView.findViewById<View>(R.id.exo_basic_controls_back_button) // Assuming this exists or we add logic to exit to remote
 
             // Manual wiring for play/pause to ensure they work reliably
             playButton?.setOnClickListener {
@@ -249,7 +248,7 @@ class WearMainActivity : ComponentActivity(), MessageClient.OnMessageReceivedLis
         if (isLocked) return super.onGenericMotionEvent(event)
         
         if (event.action == android.view.MotionEvent.ACTION_SCROLL &&
-            androidx.core.view.MotionEventCompat.isFromSource(event, android.view.InputDevice.SOURCE_ROTARY_ENCODER)
+            (event.source and android.view.InputDevice.SOURCE_ROTARY_ENCODER) == android.view.InputDevice.SOURCE_ROTARY_ENCODER
         ) {
             val delta = -event.getAxisValue(android.view.MotionEvent.AXIS_SCROLL)
             val direction = if (delta > 0) android.media.AudioManager.ADJUST_LOWER else android.media.AudioManager.ADJUST_RAISE

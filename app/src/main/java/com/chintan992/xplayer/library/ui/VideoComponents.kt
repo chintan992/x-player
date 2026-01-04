@@ -3,6 +3,11 @@ package com.chintan992.xplayer.library.ui
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.background
@@ -37,8 +42,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -76,7 +83,7 @@ fun VideoGrid(
         horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMedium),
         verticalArrangement = Arrangement.spacedBy(Dimens.SpacingMedium)
     ) {
-        items(videos) { video ->
+        items(videos, key = { it.id }) { video ->
             val positionInfo = playbackPositions[video.uri.toString()]
             val isSelected = selectedVideoIds.contains(video.id)
             VideoGridItem(
@@ -88,7 +95,11 @@ fun VideoGrid(
                 onClick = { onVideoClick(video) },
                 onLongClick = { onVideoLongClick(video) },
                 animatedVisibilityScope = animatedVisibilityScope,
-                sharedTransitionScope = sharedTransitionScope
+                sharedTransitionScope = sharedTransitionScope,
+                modifier = Modifier.animateItem(
+                    fadeInSpec = tween(300),
+                    fadeOutSpec = tween(200)
+                )
             )
         }
     }
@@ -112,7 +123,7 @@ fun VideoList(
         modifier = modifier.padding(Dimens.SpacingMedium),
         verticalArrangement = Arrangement.spacedBy(Dimens.SpacingMedium)
     ) {
-        items(videos) { video ->
+        items(videos, key = { it.id }) { video ->
             val positionInfo = playbackPositions[video.uri.toString()]
             val isSelected = selectedVideoIds.contains(video.id)
             VideoListItem(
@@ -124,7 +135,11 @@ fun VideoList(
                 onClick = { onVideoClick(video) },
                 onLongClick = { onVideoLongClick(video) },
                 animatedVisibilityScope = animatedVisibilityScope,
-                sharedTransitionScope = sharedTransitionScope
+                sharedTransitionScope = sharedTransitionScope,
+                modifier = Modifier.animateItem(
+                    fadeInSpec = tween(300),
+                    fadeOutSpec = tween(200)
+                )
             )
         }
     }
@@ -141,15 +156,28 @@ fun VideoGridItem(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     animatedVisibilityScope: AnimatedVisibilityScope,
-    sharedTransitionScope: SharedTransitionScope
+    sharedTransitionScope: SharedTransitionScope,
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     
+    // Animated selection effects
+    val elevation by animateDpAsState(
+        targetValue = if (isSelected) 8.dp else Dimens.CardElevation,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "videoCardElevation"
+    )
+    val overlayAlpha by animateFloatAsState(
+        targetValue = if (isSelectionMode) 1f else 0f,
+        animationSpec = tween(200),
+        label = "selectionOverlayAlpha"
+    )
+    
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 4.dp else Dimens.CardElevation),
+        elevation = CardDefaults.cardElevation(defaultElevation = elevation),
         shape = RoundedCornerShape(Dimens.CornerLarge),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surface
@@ -232,10 +260,11 @@ fun VideoGridItem(
                 }
                 
                 // Selection Checkbox Overlay
-                if (isSelectionMode) {
+                if (overlayAlpha > 0f) {
                     Box(
                         modifier = Modifier
                             .matchParentSize()
+                            .alpha(overlayAlpha)
                             .background(if (isSelected) Color.Black.copy(alpha = 0.3f) else Color.Transparent),
                         contentAlignment = Alignment.Center
                     ) {
@@ -291,12 +320,20 @@ fun VideoListItem(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     animatedVisibilityScope: AnimatedVisibilityScope,
-    sharedTransitionScope: SharedTransitionScope
+    sharedTransitionScope: SharedTransitionScope,
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     
+    // Animated selection overlay
+    val overlayAlpha by animateFloatAsState(
+        targetValue = if (isSelectionMode) 1f else 0f,
+        animationSpec = tween(200),
+        label = "listItemOverlayAlpha"
+    )
+    
     androidx.compose.material3.ListItem(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(Dimens.CornerMedium))
             .combinedClickable(onClick = onClick, onLongClick = onLongClick),
@@ -390,10 +427,11 @@ fun VideoListItem(
                 }
                 
                 // Selection Overlay
-                 if (isSelectionMode) {
+                 if (overlayAlpha > 0f) {
                      Box(
                         modifier = Modifier
                             .fillMaxSize()
+                            .alpha(overlayAlpha)
                             .background(Color.Black.copy(alpha = 0.4f)),
                         contentAlignment = Alignment.Center
                     ) {

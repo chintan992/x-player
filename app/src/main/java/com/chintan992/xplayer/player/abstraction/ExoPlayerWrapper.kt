@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 class ExoPlayerWrapper @Inject constructor(
-    private val exoPlayer: ExoPlayer,
+    val exoPlayer: ExoPlayer,
     private val trackManager: TrackManager,
     private val headerStorage: HeaderStorage
 ) : UniversalPlayer {
@@ -127,6 +127,9 @@ class ExoPlayerWrapper @Inject constructor(
                 params.setForceLowestBitrate(true)
             }
             DecoderMode.AUTO -> {
+                params.setForceLowestBitrate(false)
+            }
+            DecoderMode.HARDWARE_STRICT -> {
                 params.setForceLowestBitrate(false)
             }
         }
