@@ -24,7 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.chintan992.xplayer.AspectRatioMode
+import com.chintan992.xplayer.player.abstraction.AspectRatioMode
 
 @Composable
 fun BottomControls(

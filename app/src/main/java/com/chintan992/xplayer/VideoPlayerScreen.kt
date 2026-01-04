@@ -10,6 +10,8 @@ import androidx.compose.ui.geometry.Size
 import com.chintan992.xplayer.ui.theme.BrandAccent
 import com.chintan992.xplayer.ui.theme.CinemaTheme
 import com.chintan992.xplayer.player.ui.*
+import com.chintan992.xplayer.player.abstraction.AspectRatioMode
+import com.chintan992.xplayer.player.abstraction.DecoderMode
 
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.material.icons.outlined.Watch
@@ -246,7 +248,7 @@ fun VideoPlayerScreen(
 
     // Initialize ViewModel with player
     LaunchedEffect(player) {
-        viewModel.setPlayer(player, videoTitle, videoId)
+        viewModel.setPlayer(videoTitle, videoId)
     }
 
     // Start Playback

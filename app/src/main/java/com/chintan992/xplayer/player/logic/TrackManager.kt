@@ -4,7 +4,7 @@ import androidx.media3.common.C
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.exoplayer.ExoPlayer
-import com.chintan992.xplayer.TrackInfo
+import com.chintan992.xplayer.player.abstraction.TrackInfo
 import com.chintan992.xplayer.data.SubtitleRepository
 import com.chintan992.xplayer.data.SubtitleResult
 import kotlinx.coroutines.flow.Flow

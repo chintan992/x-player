@@ -358,31 +358,55 @@ fun NavGraph(
     }
 
     androidx.compose.animation.SharedTransitionLayout {
-        NavHost(navController = navController, startDestination = "library") {
-            composable("library") {
-                LibraryScreen(
-                    onVideoClick = { videoItem ->
-                        // Store video info for player screen
-                        currentVideoTitle = videoItem.name
-                        currentVideoUri = videoItem.uri.toString()
-                        currentVideoId = videoItem.id.toString()
-                        currentSubtitleUri = videoItem.subtitleUri
-                        
-                        // Set current index in PlaylistManager for seamless navigation reference
-                        val playlist = PlaylistManager.currentPlaylist
-                        val index = playlist.indexOfFirst { it.id == videoItem.id }
-                        if (index != -1) {
-                            PlaylistManager.currentVideoIndex = index
-                        }
-
-                        navController.navigate("player")
-                    },
-                    animatedVisibilityScope = this,
-                    sharedTransitionScope = this@SharedTransitionLayout
-                )
+        NavHost(navController = navController, startDestination = "main") {
+            composable("main") {
+                 com.chintan992.xplayer.ui.MainScreen(
+                     rootNavController = navController,
+                     player = player,
+                     sharedTransitionScope = this@SharedTransitionLayout,
+                     animatedVisibilityScope = this
+                 )
             }
-            composable("player") {
+            
+            composable(
+                route = "player_route/{videoUri}?title={title}&id={id}",
+                arguments = listOf(
+                    androidx.navigation.navArgument("videoUri") { type = androidx.navigation.NavType.StringType },
+                    androidx.navigation.navArgument("title") { 
+                        type = androidx.navigation.NavType.StringType 
+                        defaultValue = ""
+                    },
+                    androidx.navigation.navArgument("id") { 
+                        type = androidx.navigation.NavType.StringType 
+                        defaultValue = ""
+                    }
+                )
+            ) { backStackEntry ->
+                val videoUri = backStackEntry.arguments?.getString("videoUri")
+                val title = backStackEntry.arguments?.getString("title") ?: ""
+                val id = backStackEntry.arguments?.getString("id") ?: ""
+                
                 // Force Cinema Theme (Dark Mode, No Dynamic Color) for Player
+                XPlayerTheme(darkTheme = true, dynamicColor = false) {
+                    VideoPlayerScreen(
+                        player = player,
+                        videoTitle = title,
+                        videoUri = videoUri,
+                        videoId = id,
+                        subtitleUri = null, // TODO: Pass subtitle URI if needed
+                        onBackPressed = {
+                            player.pause()
+                            navController.popBackStack()
+                        },
+                        onEnterPip = onEnterPip,
+                        animatedVisibilityScope = this,
+                        sharedTransitionScope = this@SharedTransitionLayout
+                    )
+                }
+            }
+            
+            // Legacy/DeepLink player route (kept for compatibility/deeplinks if needed directly)
+            composable("player") {
                 XPlayerTheme(darkTheme = true, dynamicColor = false) {
                     VideoPlayerScreen(
                         player = player,
@@ -399,6 +423,10 @@ fun NavGraph(
                         sharedTransitionScope = this@SharedTransitionLayout
                     )
                 }
+            }
+            
+            composable("settings") {
+                com.chintan992.xplayer.ui.SettingsScreen(navController = navController)
             }
         }
     }

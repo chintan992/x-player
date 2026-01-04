@@ -58,6 +58,11 @@ val SuccessColor = Color(0xFF4CAF50)
 
 // Cinema Theme (Strict Dark Mode for Player)
 val CinemaBackground = Color.Black
+
+// UI Refinements for Card/List Design
+val SurfaceContainerLowDark = Color(0xFF1D1B20) // Darker card background
+val OutlineVariantDark = Color(0xFF49454F) // Border color for cards
+val SurfaceVariantDarkHigh = Color(0xFF2C2C2C) // Slightly lighter for component backgrounds
 val CinemaOnBackground = Color.White
 val CinemaSurface = Color(0xFF121212)
 val CinemaOnSurface = Color(0xFFEEEEEE)

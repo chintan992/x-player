@@ -2,6 +2,7 @@ package com.chintan992.xplayer.library.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -46,6 +47,7 @@ import com.chintan992.xplayer.VideoFolder
 import com.chintan992.xplayer.FieldVisibility
 import com.chintan992.xplayer.ui.theme.BrandAccent
 import com.chintan992.xplayer.ui.theme.Dimens
+import com.chintan992.xplayer.ui.theme.OutlineVariantDark
 
 @Composable
 fun FolderList(
@@ -87,50 +89,36 @@ fun FolderListItem(
 ) {
     val context = LocalContext.current
     
-    androidx.compose.material3.ListItem(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(Dimens.CornerMedium))
+            .height(80.dp) // Fixed height for consistency
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
+             )
+            .border(
+                width = 1.dp, 
+                color = if (isSelected) BrandAccent else OutlineVariantDark, 
+                shape = RoundedCornerShape(12.dp)
             ),
-        headlineContent = { 
-            Text(
-                text = folder.name, 
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            ) 
-        },
-        supportingContent = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMedium)
-            ) {
-                Text(text = "${folder.videoCount} video${if (folder.videoCount != 1) "s" else ""}")
-                
-                 if (folder.totalSize > 0) {
-                    Text(
-                        text = formatFileSize(folder.totalSize),
-                        modifier = Modifier
-                            .background(
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                shape = RoundedCornerShape(Dimens.CornerSmall)
-                            )
-                            .padding(horizontal = 6.dp, vertical = 2.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        },
-        leadingContent = {
-            // Folder thumbnail
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) BrandAccent.copy(alpha = 0.1f) else Color.Transparent // Outline style
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp), // Check padding vs wireframe
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Folder Thumbnail / Icon
             Box(
                 modifier = Modifier
-                    .size(Dimens.FolderThumbnailSize)
-                    .clip(RoundedCornerShape(Dimens.CornerMedium))
+                    .size(64.dp) // Square
+                    .clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
@@ -148,13 +136,13 @@ fun FolderListItem(
                 } else {
                     Icon(
                         imageVector = Icons.Outlined.Folder,
-                        contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.content_desc_folder_placeholder),
-                        modifier = Modifier.size(Dimens.IconLarge),
+                        contentDescription = null,
+                        modifier = Modifier.size(32.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 
-                // Selection Indicator Overlay
+                // Selection Overlay
                 if (isSelectionMode) {
                     Box(
                         modifier = Modifier
@@ -162,45 +150,39 @@ fun FolderListItem(
                             .background(Color.Black.copy(alpha = 0.4f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        if (isSelected) {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.content_desc_selected),
-                                tint = BrandAccent,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        } else {
-                             Icon(
-                                imageVector = Icons.Outlined.RadioButtonUnchecked,
-                                contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.content_desc_unselected),
-                                tint = Color.White.copy(alpha = 0.7f),
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
+                        Icon(
+                            imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
+                            contentDescription = null,
+                            tint = if (isSelected) BrandAccent else Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
                 }
             }
-        },
-        trailingContent = {
-             if (!isSelectionMode) {
-                 Icon(
-                    imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-                    contentDescription = null, // Decorative
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            
+            // Text Content
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = folder.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "${folder.videoCount} videos",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        },
-        colors = androidx.compose.material3.ListItemDefaults.colors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f) else Color.Transparent,
-            headlineColor = MaterialTheme.colorScheme.onBackground,
-            supportingColor = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    )
-    
-    // Divider logic handled by list container or here? 
-    // Usually ListItems handle their own dividers or list does. Keeping explicit divider for now if desired.
-    HorizontalDivider(
-        modifier = Modifier.padding(start = 84.dp), 
-        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)
-    )
+            
+            // Optional: Chevron or meta info
+             if (folder.totalSize > 0 && fieldVisibility.size) {
+                 // Maybe show size? Wireframe doesn't explicitly show it, just title/count
+             }
+        }
+    }
 }

@@ -79,6 +79,12 @@ object PlayerModule {
 
     @Provides
     @Singleton
+    fun provideUniversalPlayer(wrapper: com.chintan992.xplayer.player.abstraction.ExoPlayerWrapper): com.chintan992.xplayer.player.abstraction.UniversalPlayer {
+        return wrapper
+    }
+
+    @Provides
+    @Singleton
     fun provideDataStore(@ApplicationContext context: Context): DataStore<Preferences> {
         return context.dataStore
     }

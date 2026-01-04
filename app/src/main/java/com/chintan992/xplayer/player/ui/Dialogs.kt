@@ -46,9 +46,9 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.chintan992.xplayer.AspectRatioMode
+import com.chintan992.xplayer.player.abstraction.AspectRatioMode
 import com.chintan992.xplayer.CustomSelectionSheet
-import com.chintan992.xplayer.TrackInfo
+import com.chintan992.xplayer.player.abstraction.TrackInfo
 import com.chintan992.xplayer.data.SubtitleResult
 import com.chintan992.xplayer.ui.theme.BrandAccent
 

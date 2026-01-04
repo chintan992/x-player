@@ -14,6 +14,11 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.VideoLibrary
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.CheckBox
+import androidx.compose.material.icons.automirrored.filled.Sort
+
+import androidx.compose.ui.unit.sp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,6 +62,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 @Composable
 fun LibraryScreen(
     onVideoClick: (VideoItem) -> Unit,
+    onSettingsClick: () -> Unit,
     animatedVisibilityScope: AnimatedVisibilityScope,
     sharedTransitionScope: SharedTransitionScope
 ) {
@@ -126,7 +132,7 @@ fun LibraryScreen(
             Scaffold(
                 modifier = androidx.compose.ui.Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
                 topBar = {
-                    androidx.compose.material3.LargeTopAppBar(
+                    androidx.compose.material3.TopAppBar(
                         title = {
                              if (isSelectionMode) {
                                  Text(
@@ -135,12 +141,9 @@ fun LibraryScreen(
                                  )
                              } else {
                                 Text(
-                                    text = when {
-                                        selectedFolder != null -> selectedFolder!!.name
-                                        viewMode == ViewMode.FOLDERS -> stringResource(R.string.title_folders)
-                                        else -> stringResource(R.string.title_all_videos)
-                                    },
-                                    fontWeight = FontWeight.SemiBold
+                                    text = "XPlayer", // Brand Title
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 28.sp // Match wireframe size
                                 )
                             }
                         },
@@ -165,32 +168,41 @@ fun LibraryScreen(
                             if (isSelectionMode) {
                                  // No actions here
                             } else {
-                                // Settings button
+                                // Sort Button
                                 IconButton(onClick = { viewModel.showSettings() }) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Sort,
+                                        contentDescription = "Sort"
+                                    )
+                                }
+                                
+                                // Settings button
+                                IconButton(onClick = { onSettingsClick() }) {
                                     Icon(
                                         imageVector = Icons.Outlined.Settings,
                                         contentDescription = stringResource(R.string.action_settings)
                                     )
                                 }
-                                if (selectedFolder == null) {
-                                    IconButton(onClick = { viewModel.toggleViewMode() }) {
-                                        Icon(
-                                            imageVector = if (viewMode == ViewMode.ALL_VIDEOS) 
-                                                Icons.Outlined.Folder 
-                                            else 
-                                                Icons.Outlined.VideoLibrary,
-                                            contentDescription = if (viewMode == ViewMode.ALL_VIDEOS) 
-                                                stringResource(R.string.action_switch_folder_view) 
-                                            else 
-                                                stringResource(R.string.action_switch_all_videos)
-                                        )
-                                    }
+                                
+                                // Search Button (Placeholder)
+                                IconButton(onClick = { /* TODO: Search */ }) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Search,
+                                        contentDescription = "Search"
+                                    )
+                                }
+                                
+                                // Select Button
+                                IconButton(onClick = { viewModel.enterSelectionMode() }) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.CheckBox,
+                                        contentDescription = "Select"
+                                    )
                                 }
                             }
                         },
-                        colors = TopAppBarDefaults.largeTopAppBarColors(
+                        colors = TopAppBarDefaults.topAppBarColors(
                             containerColor = MaterialTheme.colorScheme.background,
-                            scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                             titleContentColor = MaterialTheme.colorScheme.onBackground,
                             actionIconContentColor = MaterialTheme.colorScheme.onBackground,
                             navigationIconContentColor = MaterialTheme.colorScheme.onBackground
