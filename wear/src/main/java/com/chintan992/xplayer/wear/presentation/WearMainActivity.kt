@@ -33,6 +33,7 @@ class WearMainActivity : ComponentActivity(), MessageClient.OnMessageReceivedLis
     private lateinit var remoteContainer: View
     private lateinit var remotePlayButton: android.widget.ImageButton
     private lateinit var remotePauseButton: android.widget.ImageButton
+    private lateinit var loadingIndicator: ProgressBar
     
     // Remote Control Logic
     private fun sendRemoteCommand(path: String) {

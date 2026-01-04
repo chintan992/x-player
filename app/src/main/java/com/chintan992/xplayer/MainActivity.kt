@@ -36,7 +36,7 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import com.chintan992.xplayer.data.PrivacyPolicyRepository
+// import com.chintan992.xplayer.data.PrivacyPolicyRepository
 import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -64,8 +64,8 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var okHttpClient: OkHttpClient
 
-    @Inject
-    lateinit var privacyPolicyRepository: PrivacyPolicyRepository
+//    @Inject
+//    lateinit var privacyPolicyRepository: PrivacyPolicyRepository
 
     private val pipPlayerListener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -118,10 +118,10 @@ class MainActivity : ComponentActivity() {
         
         setContent {
             XPlayerTheme {
-                val isPolicyAccepted by privacyPolicyRepository.isPolicyAccepted.collectAsState(initial = null)
+                // val isPolicyAccepted by privacyPolicyRepository.isPolicyAccepted.collectAsState(initial = null)
                 
-                when (isPolicyAccepted) {
-                    true -> {
+                // when (isPolicyAccepted) {
+                //     true -> {
                         // Policy Accepted: Show Main Content
                         val navController = rememberNavController()
                         NavGraph(
@@ -131,26 +131,11 @@ class MainActivity : ComponentActivity() {
                             resolveVideoTitle = ::resolveVideoTitle,
                             onEnterPip = { enterPipMode() }
                         )
-                    }
-                    false -> {
-                        // Policy Not Accepted: Show Dialog
-                        com.chintan992.xplayer.ui.PrivacyPolicyDialog(
-                            onAccept = {
-                                lifecycleScope.launch {
-                                    privacyPolicyRepository.acceptPolicy()
-                                }
-                            }
-                        )
-                    }
-                    null -> {
-                        // Loading state - show empty screen or splash
-                        // Surface handles background color to prevent flash
-                        Surface(
-                            modifier = androidx.compose.ui.Modifier.fillMaxSize(),
-                            color = MaterialTheme.colorScheme.background
-                        ) { }
-                    }
-                }
+                //     }
+                //     else -> {
+                //          // Fallback to content
+                //     }
+                // }
             }
         }
     }
