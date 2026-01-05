@@ -7,6 +7,14 @@ import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Folder
@@ -27,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -70,66 +79,22 @@ fun MainScreen(
          }
     }
 
-    Scaffold(
-        bottomBar = {
-            val navBackStackEntry by navController.currentBackStackEntryAsState()
-            val currentRoute = navBackStackEntry?.destination?.route
-            
-            NavigationBar {
-                items.forEach { item ->
-                    val isSelected = currentRoute == item.route
-                    
-                    // Animate icon scale with spring physics
-                    val iconScale by animateFloatAsState(
-                        targetValue = if (isSelected) 1.15f else 1f,
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessMedium
-                        ),
-                        label = "navIconScale"
-                    )
-                    
-                    NavigationBarItem(
-                        icon = { 
-                            Icon(
-                                imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
-                                contentDescription = item.title,
-                                modifier = Modifier.graphicsLayer {
-                                    scaleX = iconScale
-                                    scaleY = iconScale
-                                }
-                            ) 
-                        },
-                        label = { Text(text = item.title) },
-                        selected = isSelected,
-                        onClick = {
-                            navController.navigate(item.route) {
-                                // Pop up to the start destination of the graph to
-                                // avoid building up a large stack of destinations
-                                popUpTo(navController.graph.startDestinationId) {
-                                    saveState = true
-                                }
-                                // Avoid multiple copies of the same destination when
-                                // reselecting the same item
-                                launchSingleTop = true
-                                // Restore state when reselecting a previously selected item
-                                restoreState = true
-                            }
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = BrandAccent,
-                            selectedTextColor = BrandAccent,
-                            indicatorColor = BrandAccent.copy(alpha = 0.2f)
-                        )
-                    )
-                }
-            }
-        }
-    ) { innerPadding ->
+    // Calculate Bottom Bar Height + System Navigation Bar Height
+    // Standard NavigationBar height is 80.dp
+    // We pass this padding to the screens so they can pad their lists ABOVE the bottom bar
+    // while the content (backgrounds etc) can extend BEHIND it.
+    val navBarHeight = androidx.compose.foundation.layout.WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val bottomBarHeight = 80.dp
+    val totalBottomPadding = navBarHeight + bottomBarHeight
+    val contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = totalBottomPadding)
+
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
         NavHost(
             navController = navController,
             startDestination = BottomNavItem.Folders.route,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.fillMaxSize()
         ) {
             composable(BottomNavItem.Folders.route) {
                 LibraryScreen(
@@ -160,15 +125,90 @@ fun MainScreen(
                         }
                     },
                     animatedVisibilityScope = animatedVisibilityScope,
-                    sharedTransitionScope = sharedTransitionScope
+                    sharedTransitionScope = sharedTransitionScope,
+                    contentPadding = contentPadding
                 )
             }
             composable(BottomNavItem.Network.route) {
-                NetworkScreen()
+                NetworkScreen(contentPadding = contentPadding)
             }
             composable(BottomNavItem.Settings.route) {
                 // SettingsScreen embedded in bottom nav - pass internal navController
-                SettingsScreenEmbedded()
+                SettingsScreenEmbedded(contentPadding = contentPadding)
+            }
+        }
+        
+        // BOTTOM NAVIGATION (Overlay)
+        val navBackStackEntry by navController.currentBackStackEntryAsState()
+        val currentRoute = navBackStackEntry?.destination?.route
+        
+        // Only show bottom bar for main tabs
+        val showBottomBar = items.any { it.route == currentRoute }
+        
+        if (showBottomBar) {
+            Box(
+                modifier = Modifier
+                    .align(androidx.compose.ui.Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .graphicsLayer {
+                        // Ensure it's drawn on top
+                        shadowElevation = 0f 
+                    }
+                    .background(androidx.compose.material3.MaterialTheme.colorScheme.background.copy(alpha = 0.9f))
+            ) {
+                NavigationBar(
+                    containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                    modifier = Modifier.navigationBarsPadding(),
+                    tonalElevation = 0.dp
+                ) {
+                    items.forEach { item ->
+                        val isSelected = currentRoute == item.route
+                        
+                        // Animate icon scale with spring physics
+                        val iconScale by animateFloatAsState(
+                            targetValue = if (isSelected) 1.15f else 1f,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessMedium
+                            ),
+                            label = "navIconScale"
+                        )
+                        
+                        NavigationBarItem(
+                            icon = { 
+                                Icon(
+                                    imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
+                                    contentDescription = item.title,
+                                    modifier = Modifier.graphicsLayer {
+                                        scaleX = iconScale
+                                        scaleY = iconScale
+                                    }
+                                ) 
+                            },
+                            label = { Text(text = item.title) },
+                            selected = isSelected,
+                            onClick = {
+                                navController.navigate(item.route) {
+                                    // Pop up to the start destination of the graph to
+                                    // avoid building up a large stack of destinations
+                                    popUpTo(navController.graph.startDestinationId) {
+                                        saveState = true
+                                    }
+                                    // Avoid multiple copies of the same destination when
+                                    // reselecting the same item
+                                    launchSingleTop = true
+                                    // Restore state when reselecting a previously selected item
+                                    restoreState = true
+                                }
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = BrandAccent,
+                                selectedTextColor = BrandAccent,
+                                indicatorColor = BrandAccent.copy(alpha = 0.2f)
+                            )
+                        )
+                    }
+                }
             }
         }
     }
@@ -178,8 +218,10 @@ fun MainScreen(
  * Embedded version of SettingsScreen without the back button (used in bottom nav)
  */
 @Composable
-fun SettingsScreenEmbedded() {
-    SettingsScreen(navController = null)
+fun SettingsScreenEmbedded(
+    contentPadding: androidx.compose.foundation.layout.PaddingValues = androidx.compose.foundation.layout.PaddingValues(0.dp)
+) {
+    SettingsScreen(navController = null, contentPadding = contentPadding)
 }
 
 sealed class BottomNavItem(

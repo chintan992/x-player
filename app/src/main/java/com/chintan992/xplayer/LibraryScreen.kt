@@ -74,7 +74,8 @@ fun LibraryScreen(
     onVideoClick: (VideoItem) -> Unit,
     onSettingsClick: () -> Unit,
     animatedVisibilityScope: AnimatedVisibilityScope,
-    sharedTransitionScope: SharedTransitionScope
+    sharedTransitionScope: SharedTransitionScope,
+    contentPadding: androidx.compose.foundation.layout.PaddingValues = androidx.compose.foundation.layout.PaddingValues(0.dp)
 ) {
     val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         Manifest.permission.READ_MEDIA_VIDEO
@@ -141,7 +142,8 @@ fun LibraryScreen(
             val bottomBarHeight = if (isSelectionMode) 80.dp else 0.dp // Approximate height for SelectionBar
             
             val statusBarHeight = androidx.compose.foundation.layout.WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-            val navBarHeight = androidx.compose.foundation.layout.WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+            // We use the passed contentPadding for bottom (which includes NavBar + BottomNav), OR manual calculation if 0
+            val parentBottomPadding = contentPadding.calculateBottomPadding()
 
             Box(
                 modifier = Modifier
@@ -152,7 +154,9 @@ fun LibraryScreen(
                 // We pass the full padding needed to clear the bars + system bars
                 val listContentPadding = androidx.compose.foundation.layout.PaddingValues(
                     top = statusBarHeight + topBarHeight,
-                    bottom = navBarHeight + bottomBarHeight
+                    // If selection mode, ensure we clear the selection bar.
+                    // If regular mode, clear the parent bottom padding (MainNavBar)
+                    bottom = if (isSelectionMode) parentBottomPadding + bottomBarHeight else parentBottomPadding
                 )
                 
                 when {

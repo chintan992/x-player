@@ -308,7 +308,8 @@ fun VideoGridItem(
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 if (fieldVisibility.size) {
                     Spacer(modifier = Modifier.height(Dimens.SpacingSmall))

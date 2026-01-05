@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -60,31 +63,27 @@ import com.chintan992.xplayer.ui.theme.OutlineVariantDark
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NetworkScreen() {
+fun NetworkScreen(
+    contentPadding: androidx.compose.foundation.layout.PaddingValues = androidx.compose.foundation.layout.PaddingValues(0.dp)
+) {
     var streamUrl by remember { mutableStateOf("") }
     val clipboardManager = LocalClipboardManager.current
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { 
-                    Text(
-                        "Network", 
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 28.sp
-                    ) 
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { paddingValues ->
+    
+    val topBarHeight = 64.dp
+    val statusBarHeight = androidx.compose.foundation.layout.WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(
+                    top = statusBarHeight + topBarHeight,
+                    bottom = contentPadding.calculateBottomPadding()
+                )
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
@@ -289,6 +288,27 @@ fun NetworkScreen() {
             }
             
             Spacer(Modifier.height(16.dp))
+        }
+        
+        // TOP BAR (Overlay)
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.9f))
+        ) {
+            TopAppBar(
+                title = { 
+                    Text(
+                        "Network", 
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 28.sp
+                    ) 
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent
+                )
+            )
         }
     }
 }

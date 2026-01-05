@@ -47,9 +47,9 @@ val BackgroundLight = Color(0xFFFFFFFF)
 val OnPrimaryDark = Color.Black
 val OnPrimaryLight = Color.White
 val OnSecondaryDark = Color.White
-val OnSurfaceDark = Color(0xFFE6E1E5)
+val OnSurfaceDark = Color(0xFFFFFFFF) // Pure White for max contrast
 val OnSurfaceLight = Color(0xFF1C1B1F)
-val OnSurfaceVariantDark = Color(0xFFCAC4D0)
+val OnSurfaceVariantDark = Color(0xFFE0E0E0) // Lighter Gray
 val OnSurfaceVariantLight = Color(0xFF49454F)
 
 // Status colors
@@ -65,5 +65,5 @@ val OutlineVariantDark = Color(0xFF49454F) // Border color for cards
 val SurfaceVariantDarkHigh = Color(0xFF2C2C2C) // Slightly lighter for component backgrounds
 val CinemaOnBackground = Color.White
 val CinemaSurface = Color(0xFF121212)
-val CinemaOnSurface = Color(0xFFEEEEEE)
+val CinemaOnSurface = Color(0xFFFFFFFF) // Pure White
 val CinemaAccent = BrandAccentLight

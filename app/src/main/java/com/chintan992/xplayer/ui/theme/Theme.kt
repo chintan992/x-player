@@ -66,18 +66,19 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun XPlayerTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Enable dynamic color for Android 12+
-    dynamicColor: Boolean = true,
+    darkTheme: Boolean = true, // Force Dark Theme
+    // Disable dynamic color to ensure consistent high contrast dark theme
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
         dynamicColor && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S -> {
             val context = LocalContext.current
-            if (darkTheme) androidx.compose.material3.dynamicDarkColorScheme(context) else androidx.compose.material3.dynamicLightColorScheme(context)
+            // Even with dynamic color, prefer dark scheme if possible or force it
+             if (darkTheme) androidx.compose.material3.dynamicDarkColorScheme(context) else androidx.compose.material3.dynamicLightColorScheme(context)
         }
         darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        else -> DarkColorScheme // Fallback to Dark even if light requested, for strict dark mode compliance
     }
 
     // Update status bar color

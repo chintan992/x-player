@@ -2,18 +2,24 @@ package com.chintan992.xplayer.ui
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
@@ -54,19 +60,19 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsScreen(
     navController: NavController?,
-    viewModel: SettingsViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    viewModel: SettingsViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
+    contentPadding: androidx.compose.foundation.layout.PaddingValues = androidx.compose.foundation.layout.PaddingValues(0.dp)
 ) {
     val defaultPlayerType by viewModel.defaultPlayerType.collectAsState()
     var showPlayerDialog by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
 
-    // Player selection bottom sheet
+    // Player selection bottom sheet (Same as before)
     if (showPlayerDialog) {
         ModalBottomSheet(
             onDismissRequest = { showPlayerDialog = false },
             sheetState = sheetState,
-
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         ) {
             Column(
@@ -75,7 +81,7 @@ fun SettingsScreen(
                     .padding(bottom = 32.dp)
                     .navigationBarsPadding()
             ) {
-                Text(
+                 Text(
                     text = "Select Default Player",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
@@ -156,29 +162,21 @@ fun SettingsScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Settings", fontWeight = FontWeight.SemiBold, fontSize = 28.sp) },
-                navigationIcon = {
-                    // Only show back button when we have a nav controller (non-embedded mode)
-                    if (navController != null) {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { paddingWrapper ->
+    val topBarHeight = 64.dp
+    val statusBarHeight = androidx.compose.foundation.layout.WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingWrapper)
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    top = statusBarHeight + topBarHeight
+                )
         ) {
             SettingsSection(title = "Appearance") {
                 SettingsItem(
@@ -220,6 +218,32 @@ fun SettingsScreen(
                     onClick = {}
                 )
             }
+            
+            // Spacer for bottom content padding
+            Spacer(Modifier.height(contentPadding.calculateBottomPadding()))
+        }
+        
+        // TOP BAR (Overlay)
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.9f))
+        ) {
+             TopAppBar(
+                title = { Text("Settings", fontWeight = FontWeight.SemiBold, fontSize = 28.sp) },
+                navigationIcon = {
+                    // Only show back button when we have a nav controller (non-embedded mode)
+                    if (navController != null) {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = androidx.compose.ui.graphics.Color.Transparent
+                )
+            )
         }
     }
 }
