@@ -51,9 +51,9 @@ object PlayerModule {
         // OkHttpDataSource for network requests (HTTP/HTTPS URLs)
         val httpDataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
 
-        // DefaultDataSource wraps httpDataSourceFactory and adds support for
-        // content://, file://, asset://, and other local URI schemes
-        val dataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
+        // DefaultDataSource supports content://, file://, asset://
+        // NetworkDataSource wraps it and adds support for smb://, ftp://, webdav://
+        val dataSourceFactory = com.chintan992.xplayer.datasource.NetworkDataSource.Factory(context, httpDataSourceFactory)
 
         // Custom LoadControl to start playback faster
         val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()

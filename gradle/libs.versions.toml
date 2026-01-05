@@ -27,6 +27,9 @@ firebaseCrashlytics = "20.0.3"
 googleGmsGoogleServices = "4.4.4"
 googleFirebaseCrashlytics = "3.0.6"
 mpvAndroid = "0.1.10"
+smbj = "0.14.0"
+commonsNet = "3.12.0"
+sardineAndroid = "0.9"
 
 [libraries]
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
@@ -69,6 +72,9 @@ nanohttpd = { group = "org.nanohttpd", name = "nanohttpd", version.ref = "nanoht
 androidx-wear = { group = "androidx.wear", name = "wear", version.ref = "wear" }
 firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics", version.ref = "firebaseCrashlytics" }
 mpv-android = { group = "io.github.abdallahmehiz", name = "mpv-android-lib", version.ref = "mpvAndroid" }
+smbj = { group = "com.hierynomus", name = "smbj", version.ref = "smbj" }
+commons-net = { group = "commons-net", name = "commons-net", version.ref = "commonsNet" }
+sardine-android = { group = "com.github.thegrizzlylabs", name = "sardine-android", version.ref = "sardineAndroid" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

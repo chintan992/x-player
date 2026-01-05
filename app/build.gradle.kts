@@ -123,4 +123,7 @@ dependencies {
     implementation(libs.play.services.wearable)
     implementation(libs.nanohttpd)
     implementation(libs.mpv.android)
+    implementation(libs.smbj)
+    implementation(libs.commons.net)
+    implementation(libs.sardine.android)
 }
