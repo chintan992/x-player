@@ -1,0 +1,77 @@
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:kaptGenerateStubsDebugKotlin UP-TO-DATE
+> Task :app:kaptDebugKotlin UP-TO-DATE
+
+> Task :app:compileDebugKotlin FAILED
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:130:35 Unresolved reference 'dp'.
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:131:59 Unresolved reference 'dp'.
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:131:69 Unresolved reference 'dp'.
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:133:83 Unresolved reference 'statusBars'.
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:134:80 Unresolved reference 'navigationBars'.
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:136:13 Unresolved reference 'Box'.
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:138:22 Unresolved reference 'fillMaxSize'.
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:151:29 @Composable invocations can only happen from the context of a @Composable function
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:151:117 @Composable invocations can only happen from the context of a @Composable function
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:153:29 @Composable invocations can only happen from the context of a @Composable function
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:163:53 Unresolved reference 'fillMaxSize'.
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:170:30 @Composable invocations can only happen from the context of a @Composable function
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:172:71 @Composable invocations can only happen from the context of a @Composable function
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:172:121 @Composable invocations can only happen from the context of a @Composable function
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:188:52 @Composable invocations can only happen from the context of a @Composable function
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:198:57 Unresolved reference 'fillMaxSize'.
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:201:52 @Composable invocations can only happen from the context of a @Composable function
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:211:57 Unresolved reference 'fillMaxSize'.
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:221:17 Unresolved reference 'Box'.
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:223:26 Unresolved reference 'align'.
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:223:32 Unresolved reference 'Alignment'.
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:225:51 @Composable invocations can only happen from the context of a @Composable function
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:228:49 @Composable invocations can only happen from the context of a @Composable function
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:297:52 @Composable invocations can only happen from the context of a @Composable function
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:298:46 Unresolved reference 'Color'.
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:299:63 @Composable invocations can only happen from the context of a @Composable function
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:300:68 @Composable invocations can only happen from the context of a @Composable function
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:301:72 @Composable invocations can only happen from the context of a @Composable function
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:308:21 Unresolved reference 'Box'.
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:310:30 Unresolved reference 'align'.
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:310:36 Unresolved reference 'Alignment'.
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:312:55 @Composable invocations can only happen from the context of a @Composable function
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/LibraryScreen.kt:314:59 @Composable invocations can only happen from the context of a @Composable function
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/library/ui/FolderComponents.kt:78:9 No parameter with name 'clipToPadding' found.
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/library/ui/VideoComponents.kt:92:9 No parameter with name 'clipToPadding' found.
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/library/ui/VideoComponents.kt:140:9 No parameter with name 'clipToPadding' found.
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/ui/SettingsScreen.kt:68:13 No parameter with name 'windowInsets' found.
+e: file:///C:/Users/chint/AndroidStudioProjects/XPlayer/app/src/main/java/com/chintan992/xplayer/ui/SettingsScreen.kt:71:13 @Composable invocations can only happen from the context of a @Composable function
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 4s
+19 actionable tasks: 1 executed, 18 up-to-date

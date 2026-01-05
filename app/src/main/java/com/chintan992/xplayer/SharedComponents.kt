@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -171,24 +172,30 @@ fun <T> CustomSelectionSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color(0xFF1E1E1E),
-        contentColor = Color.White
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        contentColor = MaterialTheme.colorScheme.onSurface
     ) {
-        Column(modifier = Modifier.padding(bottom = 32.dp)) {
+        Column(
+            modifier = Modifier
+                .padding(bottom = 32.dp)
+                .navigationBarsPadding() // Ensure it clears the nav bar
+        ) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,
-                color = Color.White,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
             )
 
-            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
             LazyColumn(
-                modifier = Modifier.heightIn(max = 400.dp)
+                modifier = Modifier
+                    .weight(1f, fill = false) // Allow it to shrink, but not grow beyond screen
+                    .heightIn(max = 500.dp)   // Cap it reasonably to avoid covering full screen if not needed
             ) {
                 items(items) { item ->
+                    val isSelected = item == selectedItem
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -200,17 +207,18 @@ fun <T> CustomSelectionSheet(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(
-                            selected = item == selectedItem,
+                            selected = isSelected,
                             onClick = null,
                             colors = RadioButtonDefaults.colors(
-                                selectedColor = BrandAccent,
-                                unselectedColor = Color.White.copy(alpha = 0.6f)
+                                selectedColor = MaterialTheme.colorScheme.primary,
+                                unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         )
                         Text(
                             text = itemLabel(item),
                             style = MaterialTheme.typography.bodyLarge,
-                            color = if (item == selectedItem) Color.White else Color.White.copy(alpha = 0.8f),
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(start = 16.dp)
                         )
                     }

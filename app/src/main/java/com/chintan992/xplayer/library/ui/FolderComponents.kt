@@ -63,13 +63,20 @@ fun FolderList(
     isSelectionMode: Boolean,
     selectedFolders: Set<String>,
     fieldVisibility: FieldVisibility,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    contentPadding: androidx.compose.foundation.layout.PaddingValues = androidx.compose.foundation.layout.PaddingValues(0.dp)
 ) {
     LazyColumn(
-        modifier = modifier.padding(horizontal = Dimens.SpacingMedium, vertical = Dimens.SpacingSmall),
+        modifier = modifier,
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            start = Dimens.SpacingMedium,
+            end = Dimens.SpacingMedium,
+            top = contentPadding.calculateTopPadding() + Dimens.SpacingSmall,
+            bottom = contentPadding.calculateBottomPadding() + Dimens.SpacingSmall
+        ),
         verticalArrangement = Arrangement.spacedBy(Dimens.SpacingMedium)
     ) {
-        items(folders) { folder ->
+        items(folders, key = { it.path }) { folder ->
             val isSelected = selectedFolders.contains(folder.path)
             FolderListItem(
                 folder = folder,

@@ -7,6 +7,14 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -17,7 +25,9 @@ import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.automirrored.filled.Sort
-
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -127,12 +137,105 @@ fun LibraryScreen(
             }
         }
 
-            val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+            val topBarHeight = 64.dp // Standard TopAppBar height
+            val bottomBarHeight = if (isSelectionMode) 80.dp else 0.dp // Approximate height for SelectionBar
             
-            Scaffold(
-                modifier = androidx.compose.ui.Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-                topBar = {
-                    androidx.compose.material3.TopAppBar(
+            val statusBarHeight = androidx.compose.foundation.layout.WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+            val navBarHeight = androidx.compose.foundation.layout.WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
+                // CONTENT (List)
+                // We pass the full padding needed to clear the bars + system bars
+                val listContentPadding = androidx.compose.foundation.layout.PaddingValues(
+                    top = statusBarHeight + topBarHeight,
+                    bottom = navBarHeight + bottomBarHeight
+                )
+                
+                when {
+                    viewMode == ViewMode.FOLDERS && selectedFolder == null -> {
+                        if (folders.isEmpty()) {
+                            EmptyState(modifier = Modifier.padding(top = statusBarHeight + topBarHeight), message = stringResource(R.string.empty_folders))
+                        } else {
+                            FolderList(
+                                folders = folders,
+                                onFolderClick = { 
+                                    if (isSelectionMode) viewModel.toggleFolderSelection(it) 
+                                    else viewModel.selectFolder(it) 
+                                },
+                                onFolderLongClick = { viewModel.toggleFolderSelection(it) },
+                                isSelectionMode = isSelectionMode,
+                                selectedFolders = selectedFolders,
+                                fieldVisibility = settings.fieldVisibility,
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = listContentPadding
+                            )
+                        }
+                    }
+                    else -> {
+                        if (videos.isEmpty()) {
+                             EmptyState(
+                                modifier = Modifier.padding(top = statusBarHeight + topBarHeight), 
+                                message = if (selectedFolder != null) stringResource(R.string.empty_videos_folder) else stringResource(R.string.empty_videos)
+                            )
+                        } else {
+                            val handleVideoClick: (VideoItem) -> Unit = { video ->
+                                if (isSelectionMode) {
+                                    viewModel.toggleVideoSelection(video)
+                                } else {
+                                    val index = videos.indexOf(video)
+                                    if (index != -1) {
+                                        PlaylistManager.setPlaylist(videos, index)
+                                    }
+                                    onVideoClick(video)
+                                }
+                            }
+
+                            when (settings.layoutType) {
+                                LayoutType.GRID -> VideoGrid(
+                                    videos = videos,
+                                    onVideoClick = handleVideoClick,
+                                    onVideoLongClick = { viewModel.toggleVideoSelection(it) },
+                                    isSelectionMode = isSelectionMode,
+                                    selectedVideoIds = selectedVideos,
+                                    fieldVisibility = settings.fieldVisibility,
+                                    playbackPositions = playbackPositions,
+                                    animatedVisibilityScope = animatedVisibilityScope,
+                                    sharedTransitionScope = sharedTransitionScope,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = listContentPadding
+                                )
+                                LayoutType.LIST -> VideoList(
+                                    videos = videos,
+                                    onVideoClick = handleVideoClick,
+                                    onVideoLongClick = { viewModel.toggleVideoSelection(it) },
+                                    isSelectionMode = isSelectionMode,
+                                    selectedVideoIds = selectedVideos,
+                                    fieldVisibility = settings.fieldVisibility,
+                                    playbackPositions = playbackPositions,
+                                    animatedVisibilityScope = animatedVisibilityScope,
+                                    sharedTransitionScope = sharedTransitionScope,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = listContentPadding
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // TOP BAR (Overlay)
+                // We wrap it in a separate Box to handle the background blur/color
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.background.copy(alpha = 0.9f)) // Translucent
+                        // .blur(20.dp) // TODO: Check if blur is supported, sticking to alpha for safety/consistency for now
+                ) {
+                     androidx.compose.material3.TopAppBar(
                         title = {
                              if (isSelectionMode) {
                                  Text(
@@ -202,96 +305,33 @@ fun LibraryScreen(
                             }
                         },
                         colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.background,
+                            containerColor = Color.Transparent, // Make TopAppBar transparent so our blurry box shows
                             titleContentColor = MaterialTheme.colorScheme.onBackground,
                             actionIconContentColor = MaterialTheme.colorScheme.onBackground,
                             navigationIconContentColor = MaterialTheme.colorScheme.onBackground
-                        ),
-                        scrollBehavior = scrollBehavior
-                    )
-                },
-            bottomBar = {
-                if (isSelectionMode) {
-                    com.chintan992.xplayer.library.ui.SelectionBar(
-                        selectedCount = viewModel.getSelectedCount(),
-                        onRename = { showRenameDialog = true },
-                        onDelete = { showDeleteDialog = true },
-                        onMove = { showMoveDialog = true },
-                        onCopy = { showCopyDialog = true },
-                        onSelectAll = { viewModel.selectAll() }
+                        )
                     )
                 }
-            },
-            containerColor = MaterialTheme.colorScheme.background
-        ) { paddingValues ->
-            when {
-                viewMode == ViewMode.FOLDERS && selectedFolder == null -> {
-                    if (folders.isEmpty()) {
-                        EmptyState(modifier = Modifier.padding(paddingValues), message = stringResource(R.string.empty_folders))
-                    } else {
-                        FolderList(
-                            folders = folders,
-                            onFolderClick = { 
-                                if (isSelectionMode) viewModel.toggleFolderSelection(it) 
-                                else viewModel.selectFolder(it) 
-                            },
-                            onFolderLongClick = { viewModel.toggleFolderSelection(it) },
-                            isSelectionMode = isSelectionMode,
-                            selectedFolders = selectedFolders,
-                            fieldVisibility = settings.fieldVisibility,
-                            modifier = Modifier.padding(paddingValues)
-                        )
-                    }
-                }
-                else -> {
-                    if (videos.isEmpty()) {
-                         EmptyState(
-                            modifier = Modifier.padding(paddingValues), 
-                            message = if (selectedFolder != null) stringResource(R.string.empty_videos_folder) else stringResource(R.string.empty_videos)
-                        )
-                    } else {
-                        val handleVideoClick: (VideoItem) -> Unit = { video ->
-                            if (isSelectionMode) {
-                                viewModel.toggleVideoSelection(video)
-                            } else {
-                                val index = videos.indexOf(video)
-                                if (index != -1) {
-                                    PlaylistManager.setPlaylist(videos, index)
-                                }
-                                onVideoClick(video)
-                            }
-                        }
 
-                        when (settings.layoutType) {
-                            LayoutType.GRID -> VideoGrid(
-                                videos = videos,
-                                onVideoClick = handleVideoClick,
-                                onVideoLongClick = { viewModel.toggleVideoSelection(it) },
-                                isSelectionMode = isSelectionMode,
-                                selectedVideoIds = selectedVideos,
-                                fieldVisibility = settings.fieldVisibility,
-                                playbackPositions = playbackPositions,
-                                animatedVisibilityScope = animatedVisibilityScope,
-                                sharedTransitionScope = sharedTransitionScope,
-                                modifier = Modifier.padding(paddingValues)
-                            )
-                            LayoutType.LIST -> VideoList(
-                                videos = videos,
-                                onVideoClick = handleVideoClick,
-                                onVideoLongClick = { viewModel.toggleVideoSelection(it) },
-                                isSelectionMode = isSelectionMode,
-                                selectedVideoIds = selectedVideos,
-                                fieldVisibility = settings.fieldVisibility,
-                                playbackPositions = playbackPositions,
-                                animatedVisibilityScope = animatedVisibilityScope,
-                                sharedTransitionScope = sharedTransitionScope,
-                                modifier = Modifier.padding(paddingValues)
-                            )
-                        }
+                // BOTTOM BAR (Overlay)
+                if (isSelectionMode) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.95f))
+                    ) {
+                        com.chintan992.xplayer.library.ui.SelectionBar(
+                            selectedCount = viewModel.getSelectedCount(),
+                            onRename = { showRenameDialog = true },
+                            onDelete = { showDeleteDialog = true },
+                            onMove = { showMoveDialog = true },
+                            onCopy = { showCopyDialog = true },
+                            onSelectAll = { viewModel.selectAll() }
+                        )
                     }
                 }
             }
-        }
 
         // Dialogs
         if (showSettingsDialog) {

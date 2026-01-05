@@ -1,12 +1,17 @@
 package com.chintan992.xplayer.ui
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
@@ -20,15 +25,19 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,79 +47,125 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.compose.runtime.collectAsState
+import com.chintan992.xplayer.ui.theme.BrandAccent
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    navController: NavController,
+    navController: NavController?,
     viewModel: SettingsViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
     val defaultPlayerType by viewModel.defaultPlayerType.collectAsState()
     var showPlayerDialog by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState()
+    val scope = rememberCoroutineScope()
 
+    // Player selection bottom sheet
     if (showPlayerDialog) {
-        androidx.compose.material3.AlertDialog(
+        ModalBottomSheet(
             onDismissRequest = { showPlayerDialog = false },
-            title = { Text(text = "Select Default Player") },
-            text = {
-                Column {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                viewModel.updateDefaultPlayerType("EXO")
-                                showPlayerDialog = false
-                            }
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        androidx.compose.material3.RadioButton(
-                            selected = defaultPlayerType == "EXO",
-                            onClick = { 
-                                viewModel.updateDefaultPlayerType("EXO")
-                                showPlayerDialog = false
-                            }
+            sheetState = sheetState,
+
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp)
+                    .navigationBarsPadding()
+            ) {
+                Text(
+                    text = "Select Default Player",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+                )
+                
+                // ExoPlayer option
+                val exoSelected = defaultPlayerType == "EXO"
+                val exoBgColor by animateColorAsState(
+                    targetValue = if (exoSelected) BrandAccent.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerHigh,
+                    animationSpec = tween(200),
+                    label = "exoBg"
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            viewModel.updateDefaultPlayerType("EXO")
+                            scope.launch { sheetState.hide() }.invokeOnCompletion { showPlayerDialog = false }
+                        }
+                        .padding(horizontal = 24.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    androidx.compose.material3.RadioButton(
+                        selected = exoSelected,
+                        onClick = { 
+                            viewModel.updateDefaultPlayerType("EXO")
+                            scope.launch { sheetState.hide() }.invokeOnCompletion { showPlayerDialog = false }
+                        },
+                        colors = androidx.compose.material3.RadioButtonDefaults.colors(
+                            selectedColor = BrandAccent
                         )
-                        Spacer(Modifier.width(8.dp))
-                        Text("ExoPlayer (Recommended)")
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                viewModel.updateDefaultPlayerType("MPV")
-                                showPlayerDialog = false
-                            }
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        androidx.compose.material3.RadioButton(
-                            selected = defaultPlayerType == "MPV",
-                            onClick = { 
-                                viewModel.updateDefaultPlayerType("MPV")
-                                showPlayerDialog = false
-                            }
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text("ExoPlayer", fontWeight = FontWeight.Medium)
+                        Text(
+                            "Recommended • Android native",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(Modifier.width(8.dp))
-                        Text("MPV Player")
                     }
                 }
-            },
-            confirmButton = {
-                androidx.compose.material3.TextButton(onClick = { showPlayerDialog = false }) {
-                    Text("Cancel")
+                
+                // MPV option
+                val mpvSelected = defaultPlayerType == "MPV"
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            viewModel.updateDefaultPlayerType("MPV")
+                            scope.launch { sheetState.hide() }.invokeOnCompletion { showPlayerDialog = false }
+                        }
+                        .padding(horizontal = 24.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    androidx.compose.material3.RadioButton(
+                        selected = mpvSelected,
+                        onClick = { 
+                            viewModel.updateDefaultPlayerType("MPV")
+                            scope.launch { sheetState.hide() }.invokeOnCompletion { showPlayerDialog = false }
+                        },
+                        colors = androidx.compose.material3.RadioButtonDefaults.colors(
+                            selectedColor = BrandAccent
+                        )
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text("MPV Player", fontWeight = FontWeight.Medium)
+                        Text(
+                            "Advanced codec support",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
-        )
+        }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings", fontWeight = FontWeight.SemiBold) },
+                title = { Text("Settings", fontWeight = FontWeight.SemiBold, fontSize = 28.sp) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    // Only show back button when we have a nav controller (non-embedded mode)
+                    if (navController != null) {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -240,6 +295,13 @@ fun SettingsItemToggle(
             style = MaterialTheme.typography.bodyLarge,
              modifier = Modifier.weight(1f)
         )
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = BrandAccent,
+                checkedTrackColor = BrandAccent.copy(alpha = 0.5f)
+            )
+        )
     }
 }

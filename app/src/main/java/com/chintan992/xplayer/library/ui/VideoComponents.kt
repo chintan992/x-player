@@ -75,11 +75,18 @@ fun VideoGrid(
     playbackPositions: Map<String, Pair<Long, Long>>,
     animatedVisibilityScope: AnimatedVisibilityScope,
     sharedTransitionScope: SharedTransitionScope,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    contentPadding: androidx.compose.foundation.layout.PaddingValues = androidx.compose.foundation.layout.PaddingValues(0.dp)
 ) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
-        modifier = modifier.padding(Dimens.SpacingMedium),
+        modifier = modifier,
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            start = Dimens.SpacingMedium,
+            end = Dimens.SpacingMedium,
+            top = contentPadding.calculateTopPadding() + Dimens.SpacingMedium,
+            bottom = contentPadding.calculateBottomPadding() + Dimens.SpacingMedium
+        ),
         horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMedium),
         verticalArrangement = Arrangement.spacedBy(Dimens.SpacingMedium)
     ) {
@@ -117,10 +124,17 @@ fun VideoList(
     playbackPositions: Map<String, Pair<Long, Long>>,
     animatedVisibilityScope: AnimatedVisibilityScope,
     sharedTransitionScope: SharedTransitionScope,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    contentPadding: androidx.compose.foundation.layout.PaddingValues = androidx.compose.foundation.layout.PaddingValues(0.dp)
 ) {
     LazyColumn(
-        modifier = modifier.padding(Dimens.SpacingMedium),
+        modifier = modifier,
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            start = Dimens.SpacingMedium,
+            end = Dimens.SpacingMedium,
+            top = contentPadding.calculateTopPadding() + Dimens.SpacingMedium,
+            bottom = contentPadding.calculateBottomPadding() + Dimens.SpacingMedium
+        ),
         verticalArrangement = Arrangement.spacedBy(Dimens.SpacingMedium)
     ) {
         items(videos, key = { it.id }) { video ->
