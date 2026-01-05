@@ -40,6 +40,7 @@ interface UniversalPlayer {
         fun onDurationChanged(duration: Long)
         fun onPositionDiscontinuity(currentPosition: Long)
         fun onTracksChanged(audioTracks: List<TrackInfo>, subtitleTracks: List<TrackInfo>)
+        fun onMediaMetadataChanged(title: String?)
         fun onError(error: String)
     }
 

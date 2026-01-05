@@ -17,6 +17,7 @@ class MPVPlayerWrapper @Inject constructor(
     private var volume = 1.0f
 
     companion object {
+        const val MPV_FORMAT_STRING = 1
         const val MPV_FORMAT_FLAG = 3
         const val MPV_FORMAT_INT64 = 4
         const val MPV_FORMAT_DOUBLE = 5
@@ -42,6 +43,9 @@ class MPVPlayerWrapper @Inject constructor(
         }
 
         override fun eventProperty(property: String, value: String) {
+            if (property == "media-title" || property == "filename") {
+                 listeners.forEach { it.onMediaMetadataChanged(value) }
+            }
         }
         
         // Add missing overload if any (Double)
@@ -71,12 +75,16 @@ class MPVPlayerWrapper @Inject constructor(
         MPVLib.setOptionString("gpu-context", "android")
         MPVLib.setOptionString("hwdec", "auto")
         MPVLib.setOptionString("keep-open", "yes") // Don't terminate on end of file
+        MPVLib.setOptionString("tls-verify", "no")
+        MPVLib.setOptionString("network-timeout", "10")
         MPVLib.init()
 
         MPVLib.addObserver(mpvObserver)
         MPVLib.observeProperty("time-pos", MPV_FORMAT_INT64)
         MPVLib.observeProperty("duration", MPV_FORMAT_INT64)
         MPVLib.observeProperty("pause", MPV_FORMAT_FLAG)
+        MPVLib.observeProperty("media-title", MPV_FORMAT_STRING)
+        MPVLib.observeProperty("filename", MPV_FORMAT_STRING)
         
         // Re-attach surface if we have one (unlikely on first init, but good for safety)
         currentSurface?.let { MPVLib.attachSurface(it) }

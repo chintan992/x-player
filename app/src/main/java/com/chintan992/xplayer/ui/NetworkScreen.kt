@@ -64,10 +64,12 @@ import com.chintan992.xplayer.ui.theme.OutlineVariantDark
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NetworkScreen(
+    onVideoClick: (String, String, String, android.net.Uri?) -> Unit,
     contentPadding: androidx.compose.foundation.layout.PaddingValues = androidx.compose.foundation.layout.PaddingValues(0.dp)
 ) {
     var streamUrl by remember { mutableStateOf("") }
     val clipboardManager = LocalClipboardManager.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     
     val topBarHeight = 64.dp
     val statusBarHeight = androidx.compose.foundation.layout.WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -178,7 +180,26 @@ fun NetworkScreen(
                                             isPlayPressed = false
                                         },
                                         onTap = {
-                                            // TODO: Play Logic
+                                            if (streamUrl.isNotBlank()) {
+                                                val title = try {
+                                                    android.webkit.URLUtil.guessFileName(streamUrl, null, null)
+                                                } catch (e: Exception) {
+                                                    "Network Stream"
+                                                }
+                                                
+                                                onVideoClick(
+                                                    streamUrl,
+                                                    "network_stream_${System.currentTimeMillis()}",
+                                                    title,
+                                                    null
+                                                )
+                                            } else {
+                                                android.widget.Toast.makeText(
+                                                    context,
+                                                    "Please enter a valid URL",
+                                                    android.widget.Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
                                         }
                                     )
                                 },

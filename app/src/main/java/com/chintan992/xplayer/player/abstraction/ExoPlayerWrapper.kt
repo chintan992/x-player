@@ -54,6 +54,11 @@ class ExoPlayerWrapper @Inject constructor(
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 listeners.forEach { it.onDurationChanged(exoPlayer.duration.coerceAtLeast(0L)) }
                 listeners.forEach { it.onPositionDiscontinuity(0L) }
+                listeners.forEach { it.onMediaMetadataChanged(mediaItem?.mediaMetadata?.title?.toString()) }
+            }
+
+            override fun onMediaMetadataChanged(mediaMetadata: androidx.media3.common.MediaMetadata) {
+                listeners.forEach { it.onMediaMetadataChanged(mediaMetadata.title?.toString()) }
             }
 
             override fun onPositionDiscontinuity(

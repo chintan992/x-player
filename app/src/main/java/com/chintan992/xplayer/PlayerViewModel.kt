@@ -115,6 +115,12 @@ class PlayerViewModel @Inject constructor(
             )
         }
         
+        override fun onMediaMetadataChanged(title: String?) {
+            if (!title.isNullOrBlank()) {
+                _uiState.value = _uiState.value.copy(videoTitle = title)
+            }
+        }
+        
         override fun onError(error: String) {
              _uiState.value = _uiState.value.copy(resolvingError = error)
         }

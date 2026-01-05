@@ -130,7 +130,12 @@ fun MainScreen(
                 )
             }
             composable(BottomNavItem.Network.route) {
-                NetworkScreen(contentPadding = contentPadding)
+                NetworkScreen(
+                    onVideoClick = { uri, id, title, subtitle ->
+                        onVideoClick(uri, id, title, subtitle)
+                    },
+                    contentPadding = contentPadding
+                )
             }
             composable(BottomNavItem.Settings.route) {
                 // SettingsScreen embedded in bottom nav - pass internal navController
