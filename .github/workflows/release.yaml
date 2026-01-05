@@ -26,7 +26,7 @@ jobs:
       env:
         ENCODED_STRING: ${{ secrets.KEYSTORE_BASE64 }}
       run: |
-        echo $ENCODED_STRING | base64 -di > app/release-key.jks
+        echo $ENCODED_STRING | base64 -di > release-key.jks
 
     - name: Create keystore.properties
       env:
@@ -34,7 +34,7 @@ jobs:
         KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       run: |
-        echo "storeFile=release-key.jks" > keystore.properties
+        echo "storeFile=${{ github.workspace }}/release-key.jks" > keystore.properties
         echo "storePassword=$KEYSTORE_PASSWORD" >> keystore.properties
         echo "keyAlias=$KEY_ALIAS" >> keystore.properties
         echo "keyPassword=$KEY_PASSWORD" >> keystore.properties
@@ -42,8 +42,14 @@ jobs:
     - name: Build with Gradle
       run: ./gradlew assembleRelease
 
-    - name: Upload APK
+    - name: Upload App APK
       uses: actions/upload-artifact@v4
       with:
         name: app-release
         path: app/build/outputs/apk/release/app-release.apk
+
+    - name: Upload Wear APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: wear-release
+        path: wear/build/outputs/apk/release/wear-release.apk
