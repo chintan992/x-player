@@ -214,7 +214,7 @@ fun SettingsScreen(
                 SettingsItem(
                     icon = Icons.Outlined.Info,
                     title = "Version",
-                    subtitle = "1.0.0",
+                    subtitle = com.chintan992.xplayer.BuildConfig.VERSION_NAME,
                     onClick = {}
                 )
             }

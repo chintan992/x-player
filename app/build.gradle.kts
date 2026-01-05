@@ -24,16 +24,19 @@ android {
     val vMajor = versionProps["versionMajor"]?.toString()?.toInt() ?: 1
     val vMinor = versionProps["versionMinor"]?.toString()?.toInt() ?: 0
     val vPatch = versionProps["versionPatch"]?.toString()?.toInt() ?: 0
-    val vBuild = versionProps["versionBuild"]?.toString()?.toInt() ?: 1
+    // val vBuild = versionProps["versionBuild"]?.toString()?.toInt() ?: 1
 
     defaultConfig {
         applicationId = "com.chintan992.xplayer"
         minSdk = 24
         targetSdk = 36
-        versionCode = vBuild
+        versionCode = vMajor * 1000000 + vMinor * 1000 + vPatch
         versionName = "$vMajor.$vMinor.$vPatch"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        
+        // Default icon color (Release) - Pink
+        resValue("color", "launcher_icon_foreground", "#ffe5ec")
     }
 
     signingConfigs {
@@ -51,6 +54,11 @@ android {
     }
 
     buildTypes {
+        getByName("debug") {
+            applicationIdSuffix = ".debug"
+            // Debug icon color - Red
+            resValue("color", "launcher_icon_foreground", "#f50538")
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
