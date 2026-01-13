@@ -59,3 +59,14 @@
 # Firebase Crashlytics
 -keepattributes SourceFile,LineNumberTable
 -keep public class * extends java.lang.Exception
+
+# Network Storaage (SMB, FTP, WebDAV)
+-keep class com.hierynomus.** { *; }
+-keep class com.rapid7.** { *; }
+-keep class org.apache.commons.net.** { *; }
+-keep class com.thegrizzlylabs.sardineandroid.** { *; }
+-dontwarn com.hierynomus.**
+-dontwarn com.rapid7.**
+-dontwarn org.apache.commons.net.**
+-dontwarn com.thegrizzlylabs.sardineandroid.**
+-dontwarn javax.el.**

@@ -125,5 +125,8 @@ dependencies {
     implementation(libs.mpv.android)
     implementation(libs.smbj)
     implementation(libs.commons.net)
-    implementation(libs.sardine.android)
+    implementation(libs.sardine.android) {
+        exclude(group = "xpp3", module = "xpp3")
+        exclude(group = "xmlpull", module = "xmlpull")
+    }
 }
