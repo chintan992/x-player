@@ -4,7 +4,6 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,7 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -59,7 +58,6 @@ import androidx.compose.ui.unit.sp
 import com.chintan992.xplayer.ui.theme.BrandAccent
 import com.chintan992.xplayer.ui.theme.BrandAccentDark
 import com.chintan992.xplayer.ui.theme.BrandAccentLight
-import com.chintan992.xplayer.ui.theme.OutlineVariantDark
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,7 +70,7 @@ fun NetworkScreen(
     val context = androidx.compose.ui.platform.LocalContext.current
     
     val topBarHeight = 64.dp
-    val statusBarHeight = androidx.compose.foundation.layout.WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val topInset = androidx.compose.foundation.layout.WindowInsets.safeDrawing.asPaddingValues().calculateTopPadding()
     
     Box(
         modifier = Modifier
@@ -83,7 +81,7 @@ fun NetworkScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(
-                    top = statusBarHeight + topBarHeight,
+                    top = topInset + topBarHeight,
                     bottom = contentPadding.calculateBottomPadding()
                 )
                 .padding(horizontal = 16.dp),
@@ -99,12 +97,11 @@ fun NetworkScreen(
                 
                 Card(
                     colors = CardDefaults.cardColors(
-                        containerColor = Color.Transparent
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
                     ),
                     shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(1.dp, OutlineVariantDark, RoundedCornerShape(16.dp))
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -123,7 +120,7 @@ fun NetworkScreen(
                                 colors = OutlinedTextFieldDefaults.colors(
                                     unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                                     focusedContainerColor = MaterialTheme.colorScheme.surface,
-                                    unfocusedBorderColor = OutlineVariantDark,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                                     focusedBorderColor = BrandAccent,
                                     cursorColor = BrandAccent
                                 ),
@@ -239,13 +236,13 @@ fun NetworkScreen(
                 
                 Card(
                     colors = CardDefaults.cardColors(
-                        containerColor = Color.Transparent
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
                     ),
                     shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f) // Takes remaining space
-                        .border(1.dp, OutlineVariantDark, RoundedCornerShape(16.dp))
+                        .weight(1f)
                 ) {
                     Box(
                         modifier = Modifier

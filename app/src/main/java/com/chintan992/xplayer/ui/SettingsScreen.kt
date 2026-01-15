@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -306,7 +306,7 @@ fun SettingsScreen(
     }
 
     val topBarHeight = 64.dp
-    val statusBarHeight = androidx.compose.foundation.layout.WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val topInset = androidx.compose.foundation.layout.WindowInsets.safeDrawing.asPaddingValues().calculateTopPadding()
     
     Box(
         modifier = Modifier
@@ -318,7 +318,7 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(
-                    top = statusBarHeight + topBarHeight
+                    top = topInset + topBarHeight
                 )
         ) {
             SettingsSection(title = "Appearance") {
@@ -472,7 +472,7 @@ fun SettingsSection(title: String, content: @Composable () -> Unit) {
         Text(
             text = title,
             style = MaterialTheme.typography.labelLarge,
-            color = BrandAccent,
+            color = BrandAccent.copy(alpha = 0.8f),
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
         )

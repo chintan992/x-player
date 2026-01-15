@@ -53,7 +53,6 @@ import com.chintan992.xplayer.VideoFolder
 import com.chintan992.xplayer.FieldVisibility
 import com.chintan992.xplayer.ui.theme.BrandAccent
 import com.chintan992.xplayer.ui.theme.Dimens
-import com.chintan992.xplayer.ui.theme.OutlineVariantDark
 
 @Composable
 fun FolderList(
@@ -102,19 +101,14 @@ fun FolderListItem(
 ) {
     val context = LocalContext.current
     
-    // Animated selection effects
-    val borderWidth by animateDpAsState(
-        targetValue = if (isSelected) 2.dp else 1.dp,
-        animationSpec = spring(stiffness = Spring.StiffnessMedium),
-        label = "folderBorderWidth"
-    )
+    // Animated selection effects - only show border when selected
     val borderColor by animateColorAsState(
-        targetValue = if (isSelected) BrandAccent else OutlineVariantDark,
+        targetValue = if (isSelected) BrandAccent else Color.Transparent,
         animationSpec = spring(stiffness = Spring.StiffnessMedium),
         label = "folderBorderColor"
     )
     val containerColor by animateColorAsState(
-        targetValue = if (isSelected) BrandAccent.copy(alpha = 0.1f) else Color.Transparent,
+        targetValue = if (isSelected) BrandAccent.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerLow,
         animationSpec = spring(stiffness = Spring.StiffnessMedium),
         label = "folderContainerColor"
     )
@@ -122,7 +116,7 @@ fun FolderListItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(80.dp)
+            .height(88.dp)
             .animateContentSize(
                 animationSpec = spring(
                     dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -133,28 +127,31 @@ fun FolderListItem(
                 onClick = onClick,
                 onLongClick = onLongClick
              )
-            .border(
-                width = borderWidth, 
-                color = borderColor, 
-                shape = RoundedCornerShape(12.dp)
+            .then(
+                if (isSelected) Modifier.border(
+                    width = 2.dp, 
+                    color = borderColor, 
+                    shape = RoundedCornerShape(16.dp)
+                ) else Modifier
             ),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = containerColor
-        )
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(8.dp), // Check padding vs wireframe
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Folder Thumbnail / Icon
             Box(
                 modifier = Modifier
-                    .size(64.dp) // Square
-                    .clip(RoundedCornerShape(8.dp))
+                    .size(64.dp)
+                    .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {

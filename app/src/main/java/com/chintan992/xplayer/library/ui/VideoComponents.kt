@@ -237,17 +237,25 @@ fun VideoGridItem(
                                 )
                         )
                         
-                        // Duration badge
+                        // Duration badge - pill style
                         if (fieldVisibility.duration) {
-                            Text(
-                                text = formatDuration(video.duration),
+                            Box(
                                 modifier = Modifier
                                     .align(Alignment.BottomEnd)
-                                    .padding(Dimens.SpacingSmall),
-                                color = Color.White,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold
-                            )
+                                    .padding(Dimens.SpacingSmall)
+                                    .background(
+                                        Color.Black.copy(alpha = 0.7f),
+                                        RoundedCornerShape(4.dp)
+                                    )
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = formatDuration(video.duration),
+                                    color = Color.White,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                         
                         // Progress indicator
@@ -379,7 +387,7 @@ fun VideoListItem(
             Box(
                 modifier = Modifier
                     .size(width = Dimens.VideoListItemTitleWidth, height = Dimens.VideoListItemThumbnailHeight)
-                    .clip(RoundedCornerShape(Dimens.CornerSmall)),
+                    .clip(RoundedCornerShape(10.dp)),
                  contentAlignment = Alignment.Center
             ) {
                 if (fieldVisibility.thumbnail) {
@@ -401,22 +409,25 @@ fun VideoListItem(
                         )
                     }
                     
-                    // Duration badge on thumbnail
+                    // Duration badge - pill style
                     if (fieldVisibility.duration) {
-                         Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.3f))
-                        )
-                        Text(
-                            text = formatDuration(video.duration),
+                        Box(
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)
-                                .padding(2.dp),
-                            color = Color.White,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontSize = 10.sp
-                        )
+                                .padding(4.dp)
+                                .background(
+                                    Color.Black.copy(alpha = 0.7f),
+                                    RoundedCornerShape(4.dp)
+                                )
+                                .padding(horizontal = 4.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = formatDuration(video.duration),
+                                color = Color.White,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontSize = 10.sp
+                            )
+                        }
                     }
                     
                     // Progress indicator
