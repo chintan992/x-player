@@ -1,8 +1,12 @@
 package com.chintan992.xplayer
 
 import android.Manifest
+import android.app.Activity
 import android.os.Build
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
@@ -14,7 +18,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -39,6 +42,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -66,7 +70,6 @@ import com.chintan992.xplayer.library.ui.VideoList
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
-import kotlinx.coroutines.flow.asSharedFlow
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
@@ -104,10 +107,21 @@ fun LibraryScreen(
         val context = LocalContext.current
         
         // Dialog States
-        var showDeleteDialog by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-        var showRenameDialog by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-        var showMoveDialog by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-        var showCopyDialog by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+        var showDeleteDialog by remember { mutableStateOf(false) }
+        var showRenameDialog by remember { mutableStateOf(false) }
+        var showMoveDialog by remember { mutableStateOf(false) }
+        var showCopyDialog by remember { mutableStateOf(false) }
+        
+        // ActivityResultLauncher for system delete permission dialog (Android 11+)
+        val deletePermissionLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.StartIntentSenderForResult()
+        ) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                viewModel.onDeletePermissionGranted()
+            } else {
+                viewModel.onDeletePermissionDenied()
+            }
+        }
 
         // Refresh playback positions when screen resumes
         DisposableEffect(lifecycleOwner) {
@@ -123,10 +137,43 @@ fun LibraryScreen(
         }
         
         // Handle UI Events (Toasts)
-        androidx.compose.runtime.LaunchedEffect(viewModel.uiEvent) {
+        LaunchedEffect(viewModel.uiEvent) {
              viewModel.uiEvent.collect { message ->
-                 android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
+                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
              }
+        }
+        
+        // Handle File Events (permission requests, messages)
+        LaunchedEffect(viewModel.fileEvent) {
+            viewModel.fileEvent.collect { event ->
+                when (event) {
+                    is FileEvent.ShowMessage -> {
+                        Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+                    }
+                    is FileEvent.RequestDeletePermission -> {
+                        deletePermissionLauncher.launch(
+                            IntentSenderRequest.Builder(event.intentSender).build()
+                        )
+                    }
+                    is FileEvent.RequestAllFilesAccess -> {
+                        // Show toast and open Settings for All Files Access
+                        Toast.makeText(
+                            context,
+                            "Please enable 'All files access' to modify files",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                            val intent = android.content.Intent(
+                                android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION
+                            ).apply {
+                                data = android.net.Uri.parse("package:${context.packageName}")
+                            }
+                            context.startActivity(intent)
+                        }
+                    }
+                }
+            }
         }
 
         // Handle back press
@@ -323,6 +370,7 @@ fun LibraryScreen(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .fillMaxWidth()
+                            .padding(bottom = contentPadding.calculateBottomPadding())
                             .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.95f))
                     ) {
                         com.chintan992.xplayer.library.ui.SelectionBar(

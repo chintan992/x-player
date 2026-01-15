@@ -19,3 +19,4 @@ local.properties
 *.keystore
 keystore.properties
 keystore_base64.txt
+/wear/build

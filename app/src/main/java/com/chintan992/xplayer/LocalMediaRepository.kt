@@ -1,8 +1,12 @@
 package com.chintan992.xplayer
 
+import android.app.RecoverableSecurityException
 import android.content.ContentUris
 import android.content.Context
+import android.net.Uri
+import android.os.Build
 import android.provider.MediaStore
+import androidx.annotation.RequiresApi
 import com.chintan992.xplayer.data.local.FileScanner
 import com.chintan992.xplayer.data.local.SubtitleFinder
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -10,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class LocalMediaRepository @Inject constructor(
@@ -256,31 +261,92 @@ class LocalMediaRepository @Inject constructor(
         return hiddenVideos
     }
     
-    // Extracted helper methods removed - Keeping this comment as anchor
-
     // File Operations
-    suspend fun deleteVideo(video: VideoItem): Boolean = kotlinx.coroutines.withContext(Dispatchers.IO) {
+    
+    /**
+     * Delete a single video with modern scoped storage handling.
+     * Returns FileOperationResult for proper error handling.
+     */
+    suspend fun deleteVideoModern(video: VideoItem): FileOperationResult = withContext(Dispatchers.IO) {
         try {
+            // Try ContentResolver delete first (works for app-owned files)
+            val deleted = context.contentResolver.delete(video.uri, null, null)
+            if (deleted > 0) {
+                return@withContext FileOperationResult.Success(1)
+            }
+            
+            // Fallback: Try direct file delete (for files with write access)
             val file = java.io.File(video.folderPath, video.name)
-            if (file.exists() && file.delete()) {
-                // If file delete worked, try to clean up MediaStore
-                try {
-                    context.contentResolver.delete(video.uri, null, null)
-                } catch (e: Exception) {
-                    // Ignore, maybe not in MediaStore or already gone
-                }
-                return@withContext true
+            if (file.exists() && file.canWrite() && file.delete()) {
+                return@withContext FileOperationResult.Success(1)
             }
-            // Fallback to MediaStore delete
-            try {
-                if (context.contentResolver.delete(video.uri, null, null) > 0) return@withContext true
-            } catch (e: Exception) {
-                e.printStackTrace()
+            
+            FileOperationResult.Error("Could not delete file. Check permissions.")
+        } catch (e: SecurityException) {
+            // Handle RecoverableSecurityException for Android 10+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && e is RecoverableSecurityException) {
+                FileOperationResult.NeedsPermission(e.userAction.actionIntent.intentSender)
+            } else {
+                FileOperationResult.Error("Permission denied: ${e.message}")
             }
-            return@withContext false
         } catch (e: Exception) {
-            e.printStackTrace()
-            false
+            FileOperationResult.Error(e.message ?: "Unknown error during delete")
+        }
+    }
+    
+    /**
+     * Create a delete request for multiple videos (Android R+ only).
+     * Returns an IntentSender for user consent dialog.
+     */
+    @RequiresApi(Build.VERSION_CODES.R)
+    fun createBulkDeleteRequest(uris: List<Uri>): android.app.PendingIntent {
+        return MediaStore.createDeleteRequest(context.contentResolver, uris)
+    }
+    
+    /**
+     * Delete multiple videos with proper Android version handling.
+     */
+    suspend fun deleteVideosModern(videos: List<VideoItem>): FileOperationResult = withContext(Dispatchers.IO) {
+        if (videos.isEmpty()) return@withContext FileOperationResult.Success(0)
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // Android 11+: Use createDeleteRequest for system consent dialog
+            try {
+                val uris = videos.map { it.uri }
+                val pendingIntent = createBulkDeleteRequest(uris)
+                return@withContext FileOperationResult.NeedsPermission(pendingIntent.intentSender)
+            } catch (e: Exception) {
+                return@withContext FileOperationResult.Error("Failed to create delete request: ${e.message}")
+            }
+        } else {
+            // Android 10 and below: Delete one by one
+            var successCount = 0
+            var lastError: String? = null
+            
+            for (video in videos) {
+                when (val result = deleteVideoModern(video)) {
+                    is FileOperationResult.Success -> successCount += result.count
+                    is FileOperationResult.NeedsPermission -> {
+                        // Return immediately for permission request
+                        return@withContext result
+                    }
+                    is FileOperationResult.Error -> lastError = result.message
+                }
+            }
+            
+            if (successCount > 0) {
+                FileOperationResult.Success(successCount)
+            } else {
+                FileOperationResult.Error(lastError ?: "Failed to delete files")
+            }
+        }
+    }
+
+    // Legacy delete method for backwards compatibility
+    suspend fun deleteVideo(video: VideoItem): Boolean = withContext(Dispatchers.IO) {
+        when (val result = deleteVideoModern(video)) {
+            is FileOperationResult.Success -> true
+            else -> false
         }
     }
 
@@ -335,23 +401,73 @@ class LocalMediaRepository @Inject constructor(
         }
     }
     
-    suspend fun moveVideo(video: VideoItem, targetFolderPath: String): Boolean = kotlinx.coroutines.withContext(Dispatchers.IO) {
+    /**
+     * Move a video to a target folder using modern scoped storage practices.
+     * Returns FileOperationResult for proper error handling.
+     */
+    suspend fun moveVideoModern(video: VideoItem, targetFolderPath: String): FileOperationResult = withContext(Dispatchers.IO) {
         try {
-             val sourceFile = java.io.File(video.folderPath, video.name)
-             val destFile = java.io.File(targetFolderPath, video.name)
-             
-             if (sourceFile.renameTo(destFile)) {
-                 android.media.MediaScannerConnection.scanFile(context, arrayOf(destFile.absolutePath), null, null)
-                 return@withContext true
-             }
-             // Cross-filesystem move fallback (copy + delete)
-             if (copyVideo(video, targetFolderPath)) {
-                 return@withContext deleteVideo(video)
-             }
-             false
+            val sourceFile = java.io.File(video.folderPath, video.name)
+            val destFile = java.io.File(targetFolderPath, video.name)
+            
+            // Check if already in target folder
+            if (video.folderPath == targetFolderPath) {
+                return@withContext FileOperationResult.Success(1)
+            }
+            
+            // Try direct rename first (fast, atomic - works on same filesystem if we have write access)
+            if (sourceFile.exists() && sourceFile.canWrite()) {
+                if (sourceFile.renameTo(destFile)) {
+                    android.media.MediaScannerConnection.scanFile(context, arrayOf(destFile.absolutePath), null, null)
+                    // Update MediaStore for old location
+                    try {
+                        context.contentResolver.delete(video.uri, null, null)
+                    } catch (e: Exception) {
+                        // Ignore - MediaScanner will handle it
+                    }
+                    return@withContext FileOperationResult.Success(1)
+                }
+            }
+            
+            // Fallback: Copy to destination first
+            if (!copyVideo(video, targetFolderPath)) {
+                return@withContext FileOperationResult.Error("Failed to copy file to destination")
+            }
+            
+            // Now delete the original using modern API
+            when (val deleteResult = deleteVideoModern(video)) {
+                is FileOperationResult.Success -> {
+                    FileOperationResult.Success(1)
+                }
+                is FileOperationResult.NeedsPermission -> {
+                    // User needs to grant permission to delete original
+                    // The copy was successful, so we return the permission request
+                    // After permission is granted, the original will be deleted
+                    deleteResult
+                }
+                is FileOperationResult.Error -> {
+                    // Copy succeeded but delete failed
+                    // This leaves a duplicate, but move is partially complete
+                    FileOperationResult.Error("Copied to destination but couldn't remove original: ${deleteResult.message}")
+                }
+            }
+        } catch (e: SecurityException) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && e is android.app.RecoverableSecurityException) {
+                FileOperationResult.NeedsPermission(e.userAction.actionIntent.intentSender)
+            } else {
+                FileOperationResult.Error("Permission denied: ${e.message}")
+            }
         } catch (e: Exception) {
             e.printStackTrace()
-            false
+            FileOperationResult.Error(e.message ?: "Failed to move file")
+        }
+    }
+
+    // Legacy move method for backwards compatibility
+    suspend fun moveVideo(video: VideoItem, targetFolderPath: String): Boolean = withContext(Dispatchers.IO) {
+        when (val result = moveVideoModern(video, targetFolderPath)) {
+            is FileOperationResult.Success -> true
+            else -> false
         }
     }
 

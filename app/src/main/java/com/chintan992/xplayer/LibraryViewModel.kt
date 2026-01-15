@@ -1,9 +1,13 @@
 package com.chintan992.xplayer
 
+import android.content.IntentSender
+import android.os.Build
+import android.os.Environment
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +20,15 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+/**
+ * Sealed class for events that require UI interaction
+ */
+sealed class FileEvent {
+    data class ShowMessage(val message: String) : FileEvent()
+    data class RequestDeletePermission(val intentSender: IntentSender) : FileEvent()
+    object RequestAllFilesAccess : FileEvent()
+}
 
 enum class ViewMode {
     ALL_VIDEOS,
@@ -218,9 +231,16 @@ class LibraryViewModel @Inject constructor(
     private val _selectedFolders = MutableStateFlow<Set<String>>(emptySet())
     val selectedFolders = _selectedFolders.asStateFlow()
     
-    // UI Events
-    private val _uiEvent = kotlinx.coroutines.flow.MutableSharedFlow<String>()
+    // UI Events (simple messages)
+    private val _uiEvent = MutableSharedFlow<String>()
     val uiEvent = _uiEvent.asSharedFlow()
+    
+    // File Events (may require permission flow)
+    private val _fileEvent = MutableSharedFlow<FileEvent>()
+    val fileEvent = _fileEvent.asSharedFlow()
+    
+    // Store pending delete for retry after permission
+    private var pendingDeleteVideos: List<VideoItem> = emptyList()
 
     fun enterSelectionMode() {
         _isSelectionMode.value = true
@@ -284,35 +304,94 @@ class LibraryViewModel @Inject constructor(
         _selectedFolders.value = emptySet()
     }
     
+    /**
+     * Check if the app has All Files Access permission (MANAGE_EXTERNAL_STORAGE)
+     * Required for file modifications on Android R+
+     */
+    private fun hasAllFilesAccess(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Environment.isExternalStorageManager()
+        } else {
+            true // Not needed on Android 10 and below
+        }
+    }
+    
     // File Operations Logic
     fun deleteSelected() {
         viewModelScope.launch {
-            var successCount = 0
-            val specifiedFolder = _selectedFolder.value
+            // Check for All Files Access on Android R+
+            if (!hasAllFilesAccess()) {
+                _fileEvent.emit(FileEvent.RequestAllFilesAccess)
+                return@launch
+            }
             
-            // Delete Videos
-            if (_selectedVideos.value.isNotEmpty()) {
-                val videosToDelete = videos.value.filter { _selectedVideos.value.contains(it.id) }
-                videosToDelete.forEach { video ->
-                    if (repository.deleteVideo(video)) successCount++
+            // Get videos to delete
+            val videosToDelete = if (_selectedVideos.value.isNotEmpty()) {
+                videos.value.filter { _selectedVideos.value.contains(it.id) }
+            } else emptyList()
+            
+            // Get folders to delete
+            val foldersToDelete = if (_selectedFolders.value.isNotEmpty()) {
+                folders.value.filter { _selectedFolders.value.contains(it.path) }
+            } else emptyList()
+            
+            var totalSuccess = 0
+            
+            // Handle videos with modern API
+            if (videosToDelete.isNotEmpty()) {
+                pendingDeleteVideos = videosToDelete
+                when (val result = repository.deleteVideosModern(videosToDelete)) {
+                    is FileOperationResult.Success -> {
+                        totalSuccess += result.count
+                        pendingDeleteVideos = emptyList()
+                    }
+                    is FileOperationResult.NeedsPermission -> {
+                        // Emit event for UI to show system permission dialog
+                        _fileEvent.emit(FileEvent.RequestDeletePermission(result.intentSender))
+                        return@launch // Wait for user response
+                    }
+                    is FileOperationResult.Error -> {
+                        _fileEvent.emit(FileEvent.ShowMessage("Delete failed: ${result.message}"))
+                    }
                 }
             }
             
-            // Delete Folders
-            if (_selectedFolders.value.isNotEmpty()) {
-                val foldersToDelete = folders.value.filter { _selectedFolders.value.contains(it.path) }
-                foldersToDelete.forEach { folder ->
-                    if (repository.deleteFolder(folder)) successCount++
-                }
+            // Handle folders (legacy method, no scoped storage issues for folders)
+            foldersToDelete.forEach { folder ->
+                if (repository.deleteFolder(folder)) totalSuccess++
             }
             
-            if (successCount > 0) {
-                _uiEvent.emit("Deleted $successCount items")
+            if (totalSuccess > 0) {
+                _uiEvent.emit("Deleted $totalSuccess items")
                 exitSelectionMode()
                 refresh()
-            } else {
-                _uiEvent.emit("Failed to delete items")
+            } else if (videosToDelete.isEmpty() && foldersToDelete.isNotEmpty()) {
+                _uiEvent.emit("Failed to delete folders")
             }
+        }
+    }
+    
+    /**
+     * Called when user grants permission in system delete dialog
+     */
+    fun onDeletePermissionGranted() {
+        viewModelScope.launch {
+            // After permission granted, files are already deleted by system
+            val count = pendingDeleteVideos.size
+            pendingDeleteVideos = emptyList()
+            _uiEvent.emit("Deleted $count items")
+            exitSelectionMode()
+            refresh()
+        }
+    }
+    
+    /**
+     * Called when user denies permission in system delete dialog
+     */
+    fun onDeletePermissionDenied() {
+        viewModelScope.launch {
+            pendingDeleteVideos = emptyList()
+            _uiEvent.emit("Delete cancelled")
         }
     }
     
@@ -344,21 +423,74 @@ class LibraryViewModel @Inject constructor(
         }
     }
 
+    // Store pending move for retry after permission
+    private var pendingMoveVideos: List<VideoItem> = emptyList()
+    private var pendingMoveTargetFolder: VideoFolder? = null
+
     fun moveSelected(targetFolder: VideoFolder) {
         viewModelScope.launch {
-            var count = 0
-            val videosToMove = videos.value.filter { _selectedVideos.value.contains(it.id) }
-            videosToMove.forEach { video ->
-                if (repository.moveVideo(video, targetFolder.path)) count++
+            // Check for All Files Access on Android R+
+            if (!hasAllFilesAccess()) {
+                _fileEvent.emit(FileEvent.RequestAllFilesAccess)
+                return@launch
             }
             
-            if (count > 0) {
-                _uiEvent.emit("Moved $count items")
-                exitSelectionMode()
-                refresh()
-            } else {
-                _uiEvent.emit("Move failed")
+            val videosToMove = videos.value.filter { _selectedVideos.value.contains(it.id) }
+            
+            if (videosToMove.isEmpty()) {
+                _uiEvent.emit("No videos selected")
+                return@launch
             }
+            
+            pendingMoveVideos = videosToMove
+            pendingMoveTargetFolder = targetFolder
+            
+            var successCount = 0
+            var hasPermissionRequest = false
+            
+            for (video in videosToMove) {
+                when (val result = repository.moveVideoModern(video, targetFolder.path)) {
+                    is FileOperationResult.Success -> {
+                        successCount += result.count
+                    }
+                    is FileOperationResult.NeedsPermission -> {
+                        // Need user permission to delete original after copy
+                        _fileEvent.emit(FileEvent.RequestDeletePermission(result.intentSender))
+                        hasPermissionRequest = true
+                        break // Wait for user to grant permission
+                    }
+                    is FileOperationResult.Error -> {
+                        _fileEvent.emit(FileEvent.ShowMessage("Move failed: ${result.message}"))
+                    }
+                }
+            }
+            
+            if (!hasPermissionRequest) {
+                pendingMoveVideos = emptyList()
+                pendingMoveTargetFolder = null
+                
+                if (successCount > 0) {
+                    _uiEvent.emit("Moved $successCount items")
+                    exitSelectionMode()
+                    refresh()
+                } else {
+                    _uiEvent.emit("Move failed")
+                }
+            }
+        }
+    }
+    
+    /**
+     * Called when user grants move/delete permission - continue the pending move
+     */
+    fun onMovePermissionGranted() {
+        viewModelScope.launch {
+            val count = pendingMoveVideos.size
+            pendingMoveVideos = emptyList()
+            pendingMoveTargetFolder = null
+            _uiEvent.emit("Moved $count items")
+            exitSelectionMode()
+            refresh()
         }
     }
     
