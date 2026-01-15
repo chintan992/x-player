@@ -28,12 +28,13 @@ class FileScanner @Inject constructor(
                     val size = file.length()
                     val modified = file.lastModified() / 1000
                     
-                    // Duration not easily available without extracting, set to 0
+                    val duration = getDuration(file)
+                    
                     videos.add(VideoItem(
                         id = file.hashCode().toLong(), // Synthetic ID
                         uri = uri,
                         name = name,
-                        duration = 0L,
+                        duration = duration,
                         size = size,
                         dateModified = modified,
                         folderPath = folderPath,
@@ -49,5 +50,22 @@ class FileScanner @Inject constructor(
     private fun isValidVideoFile(name: String): Boolean {
         val extensions = arrayOf(".mp4", ".mkv", ".webm", ".avi", ".mov", ".3gp")
         return extensions.any { name.endsWith(it, ignoreCase = true) }
+    }
+
+    private fun getDuration(file: File): Long {
+        val retriever = android.media.MediaMetadataRetriever()
+        return try {
+            retriever.setDataSource(file.absolutePath)
+            val time = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)
+            time?.toLongOrNull() ?: 0L
+        } catch (e: Exception) {
+            0L
+        } finally {
+            try {
+                retriever.release()
+            } catch (e: Exception) {
+                // Ignore
+            }
+        }
     }
 }
