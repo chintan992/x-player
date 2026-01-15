@@ -3,6 +3,7 @@ package com.chintan992.xplayer.library.ui
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -49,6 +50,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -175,159 +177,148 @@ fun VideoGridItem(
 ) {
     val context = LocalContext.current
     
-    // Animated selection effects
-    val elevation by animateDpAsState(
-        targetValue = if (isSelected) 8.dp else Dimens.CardElevation,
+    // Animated selection
+    val scale by animateFloatAsState(
+        targetValue = if (isSelected) 0.95f else 1f,
         animationSpec = spring(stiffness = Spring.StiffnessMedium),
-        label = "videoCardElevation"
+        label = "videoScale"
     )
-    val overlayAlpha by animateFloatAsState(
-        targetValue = if (isSelectionMode) 1f else 0f,
-        animationSpec = tween(200),
-        label = "selectionOverlayAlpha"
-    )
-    
-    Card(
+
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = elevation),
-        shape = RoundedCornerShape(Dimens.CornerLarge),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surface
-        ),
-        border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, BrandAccent) else null
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .clip(RoundedCornerShape(12.dp))
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
     ) {
-        Column {
-            // Thumbnail container
-            Box {
-                 if (fieldVisibility.thumbnail) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(16f / 9f)
-                    ) {
-                        with(sharedTransitionScope) {
-                            AsyncImage(
-                                model = ImageRequest.Builder(context)
-                                    .data(video.uri)
-                                    .videoFrameMillis(1000)
-                                    .crossfade(true)
-                                    .build(),
-                                contentDescription = video.name,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .sharedElement(
-                                        rememberSharedContentState(key = "video-${video.id}"),
-                                        animatedVisibilityScope = animatedVisibilityScope
-                                    ),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-                        
-                        // Gradient Overlay
-                         Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    Brush.verticalGradient(
-                                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
-                                        startY = 100f
-                                    )
-                                )
-                        )
-                        
-                        // Duration badge - pill style
-                        if (fieldVisibility.duration) {
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .padding(Dimens.SpacingSmall)
-                                    .background(
-                                        Color.Black.copy(alpha = 0.7f),
-                                        RoundedCornerShape(4.dp)
-                                    )
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = formatDuration(video.duration),
-                                    color = Color.White,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                        
-                        // Progress indicator
-                        playbackPosition?.let { (pos, _) ->
-                            if (pos > 0) {
-                                val progress = pos.toFloat() / video.duration.coerceAtLeast(1)
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(Dimens.ProgressBarHeight)
-                                        .align(Alignment.BottomStart)
-                                        .background(Color.White.copy(alpha = 0.3f))
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth(progress)
-                                            .fillMaxHeight()
-                                            .background(BrandAccent)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                // Selection Checkbox Overlay
-                if (overlayAlpha > 0f) {
-                    Box(
-                        modifier = Modifier
-                            .matchParentSize()
-                            .alpha(overlayAlpha)
-                            .background(if (isSelected) Color.Black.copy(alpha = 0.3f) else Color.Transparent),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (isSelected) {
-                             Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.content_desc_selected),
-                                tint = BrandAccent,
-                                modifier = Modifier.size(32.dp).background(Color.White, androidx.compose.foundation.shape.CircleShape)
-                            )
-                        } else {
-                             // Empty circle for unselected hint
-                             Icon(
-                                imageVector = Icons.Outlined.RadioButtonUnchecked,
-                                contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.content_desc_unselected),
-                                tint = Color.White.copy(alpha = 0.8f),
-                                modifier = Modifier.size(32.dp)
-                            )
-                        }
-                    }
-                }
+        // Thumbnail container
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(16f / 9f)
+                .clip(RoundedCornerShape(12.dp)) // Rounded corners for thumbnail
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+        ) {
+            with(sharedTransitionScope) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(video.uri)
+                        .videoFrameMillis(1000)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = video.name,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .sharedElement(
+                            rememberSharedContentState(key = "video-${video.id}"),
+                            animatedVisibilityScope = animatedVisibilityScope
+                        ),
+                    contentScale = ContentScale.Crop
+                )
             }
             
-            Column(modifier = Modifier.padding(Dimens.SpacingMedium)) {
-                Text(
-                    text = video.name,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                if (fieldVisibility.size) {
-                    Spacer(modifier = Modifier.height(Dimens.SpacingSmall))
+            // Subtle Gradient for text readability if we placed text inside, 
+            // but for this design we keep text outside, so this is just for the duration badge contrast or aesthetics
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.3f)),
+                            startY = 0.7f
+                        )
+                    )
+            )
+            
+            // Duration Badge
+            if (fieldVisibility.duration) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(6.dp)
+                        .background(
+                            Color.Black.copy(alpha = 0.6f),
+                            RoundedCornerShape(4.dp)
+                        )
+                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                ) {
                     Text(
-                        text = formatFileSize(video.size),
+                        text = formatDuration(video.duration),
+                        color = Color.White,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp
                     )
                 }
             }
+            
+            // Progress Indicator
+            playbackPosition?.let { (pos, _) ->
+                if (pos > 0) {
+                    val progress = pos.toFloat() / video.duration.coerceAtLeast(1)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(3.dp)
+                            .align(Alignment.BottomStart)
+                            .background(Color.White.copy(alpha = 0.3f))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(progress)
+                                .fillMaxHeight()
+                                .background(BrandAccent)
+                        )
+                    }
+                }
+            }
+
+            // Selection Checkmark Overlay
+            if (isSelectionMode) {
+                 Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(if (isSelected) Color.Black.copy(alpha = 0.5f) else Color.Transparent),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isSelected) {
+                         Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = BrandAccent,
+                            modifier = Modifier.size(32.dp).background(Color.White, CircleShape).padding(2.dp)
+                        )
+                    } else {
+                         Icon(
+                            imageVector = Icons.Outlined.RadioButtonUnchecked,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.8f),
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                }
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        // Text Info (Outside Card)
+        Text(
+            text = video.name,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        
+        if (fieldVisibility.size) {
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "${formatFileSize(video.size)}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -348,154 +339,139 @@ fun VideoListItem(
 ) {
     val context = LocalContext.current
     
-    // Animated selection overlay
-    val overlayAlpha by animateFloatAsState(
-        targetValue = if (isSelectionMode) 1f else 0f,
-        animationSpec = tween(200),
-        label = "listItemOverlayAlpha"
+    // Animated selection
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.surfaceContainerHighest else Color.Transparent, 
+        label = "listItemBackground"
     )
-    
-    androidx.compose.material3.ListItem(
+
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(Dimens.CornerMedium))
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        headlineContent = {
-             Text(
-                text = video.name,
-                fontWeight = FontWeight.Normal,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-        },
-        supportingContent = {
-            Row(horizontalArrangement = Arrangement.spacedBy(Dimens.SpacingMedium)) {
-                 if (fieldVisibility.size) {
-                    Text(
-                        text = formatFileSize(video.size),
+            .clip(RoundedCornerShape(12.dp))
+            .background(backgroundColor)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .padding(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+         // Thumbnail
+        Box(
+            modifier = Modifier
+                .width(120.dp)
+                .aspectRatio(16f / 9f)
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+             contentAlignment = Alignment.Center
+        ) {
+            if (fieldVisibility.thumbnail) {
+                with(sharedTransitionScope) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(video.uri)
+                            .videoFrameMillis(1000)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = video.name,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .sharedElement(
+                                rememberSharedContentState(key = "video-${video.id}"),
+                                animatedVisibilityScope = animatedVisibilityScope
+                            ),
+                        contentScale = ContentScale.Crop
                     )
                 }
-                if (fieldVisibility.duration && !fieldVisibility.thumbnail) {
-                    Text(
-                        text = formatDuration(video.duration),
-                    )
-                }
-            }
-        },
-        leadingContent = {
-            // Thumbnail
-            Box(
-                modifier = Modifier
-                    .size(width = Dimens.VideoListItemTitleWidth, height = Dimens.VideoListItemThumbnailHeight)
-                    .clip(RoundedCornerShape(10.dp)),
-                 contentAlignment = Alignment.Center
-            ) {
-                if (fieldVisibility.thumbnail) {
-                    with(sharedTransitionScope) {
-                        AsyncImage(
-                            model = ImageRequest.Builder(context)
-                                .data(video.uri)
-                                .videoFrameMillis(1000)
-                                .crossfade(true)
-                                .build(),
-                            contentDescription = video.name,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .sharedElement(
-                                    rememberSharedContentState(key = "video-${video.id}"),
-                                    animatedVisibilityScope = animatedVisibilityScope
-                                ),
-                            contentScale = ContentScale.Crop
+                
+                // Duration
+                if (fieldVisibility.duration) {
+                     Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(4.dp)
+                            .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = formatDuration(video.duration),
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold
                         )
-                    }
-                    
-                    // Duration badge - pill style
-                    if (fieldVisibility.duration) {
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .padding(4.dp)
-                                .background(
-                                    Color.Black.copy(alpha = 0.7f),
-                                    RoundedCornerShape(4.dp)
-                                )
-                                .padding(horizontal = 4.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = formatDuration(video.duration),
-                                color = Color.White,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = 10.sp
-                            )
-                        }
-                    }
-                    
-                    // Progress indicator
-                    playbackPosition?.let { (pos, _) ->
-                        if (pos > 0) {
-                            val progress = pos.toFloat() / video.duration.coerceAtLeast(1)
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(Dimens.ProgressBarHeightSmall)
-                                    .align(Alignment.BottomStart)
-                                    .background(Color.White.copy(alpha = 0.3f))
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth(progress)
-                                        .fillMaxHeight()
-                                        .background(BrandAccent)
-                                )
-                            }
-                        }
                     }
                 }
                 
-                // Selection Overlay
-                 if (overlayAlpha > 0f) {
-                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .alpha(overlayAlpha)
-                            .background(Color.Black.copy(alpha = 0.4f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (isSelected) {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.content_desc_selected),
-                                tint = BrandAccent,
-                                modifier = Modifier.size(24.dp).background(Color.White, androidx.compose.foundation.shape.CircleShape)
-                            )
-                        } else {
-                             Icon(
-                                imageVector = Icons.Outlined.RadioButtonUnchecked,
-                                contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.content_desc_unselected),
-                                tint = Color.White.copy(alpha = 0.7f),
-                                modifier = Modifier.size(24.dp)
+                // Progress
+                playbackPosition?.let { (pos, _) ->
+                    if (pos > 0) {
+                        val progress = pos.toFloat() / video.duration.coerceAtLeast(1)
+                         Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(2.dp)
+                                .align(Alignment.BottomStart)
+                                .background(Color.White.copy(alpha = 0.3f))
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(progress)
+                                    .fillMaxHeight()
+                                    .background(BrandAccent)
                             )
                         }
                     }
                 }
             }
-        },
-        trailingContent = {
-             if (!isSelectionMode) {
-                 androidx.compose.material3.IconButton(onClick = { /* TODO: Show options menu */ }) {
-                     Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = androidx.compose.ui.res.stringResource(com.chintan992.xplayer.R.string.content_desc_more_options),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(Dimens.IconMedium)
+            
+            // Selection Overlay
+            if (isSelectionMode) {
+                 Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.4f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
+                        contentDescription = null,
+                        tint = if (isSelected) BrandAccent else Color.White,
+                        modifier = Modifier.size(24.dp).background(if (isSelected) Color.White else Color.Transparent, CircleShape).clip(CircleShape)
                     )
-                 }
+                }
             }
-        },
-        colors = androidx.compose.material3.ListItemDefaults.colors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f) else Color.Transparent,
-            headlineColor = MaterialTheme.colorScheme.onBackground,
-            supportingColor = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    )
+        }
+        
+        // Text Info
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = video.name,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = formatFileSize(video.size),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        
+        // More Video Options
+        if (!isSelectionMode) {
+             androidx.compose.material3.IconButton(
+                 onClick = { /* TODO: Show options menu */ },
+                 modifier = Modifier.size(Dimens.IconMedium)
+             ) {
+                 Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+             }
+        }
+    }
 }

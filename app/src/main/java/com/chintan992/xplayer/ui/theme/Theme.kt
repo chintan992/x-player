@@ -35,6 +35,7 @@ private val DarkColorScheme = darkColorScheme(
     onSurfaceVariant = OnSurfaceVariantDark,
     surfaceContainer = SurfaceContainerDark,
     surfaceContainerHigh = SurfaceContainerHighDark,
+    surfaceContainerLow = SurfaceContainerLowDark,
     error = ErrorColor,
     onError = Color.White
 )

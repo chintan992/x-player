@@ -344,7 +344,8 @@ fun LibraryScreen(
                                     Text(
                                         text = if (selectedFolder != null) selectedFolder!!.name else "XPlayer", // Brand Title or Folder Name
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 28.sp // Match wireframe size
+                                        fontSize = 34.sp, // Increased size for bold header
+                                        letterSpacing = (-1).sp // Tight letter spacing
                                     )
                                 }
                             },
@@ -369,27 +370,19 @@ fun LibraryScreen(
                                 if (isSelectionMode) {
                                      // No actions here
                                 } else {
-                                    // Sort Button
-                                    IconButton(onClick = { viewModel.showSettings() }) {
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.Sort,
-                                            contentDescription = "Sort"
-                                        )
-                                    }
-                                    
-                                    // Settings button
-                                    IconButton(onClick = { onSettingsClick() }) {
-                                        Icon(
-                                            imageVector = Icons.Outlined.Settings,
-                                            contentDescription = stringResource(R.string.action_settings)
-                                        )
-                                    }
-                                    
                                     // Search Button
                                     IconButton(onClick = { viewModel.toggleSearch() }) {
                                         Icon(
                                             imageVector = Icons.Outlined.Search,
                                             contentDescription = "Search"
+                                        )
+                                    }
+
+                                    // Sort Button
+                                    IconButton(onClick = { viewModel.showSettings() }) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.Sort,
+                                            contentDescription = "Sort"
                                         )
                                     }
                                     
@@ -400,10 +393,18 @@ fun LibraryScreen(
                                             contentDescription = "Select"
                                         )
                                     }
+                                    
+                                    // Settings button
+                                    IconButton(onClick = { onSettingsClick() }) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Settings,
+                                            contentDescription = stringResource(R.string.action_settings)
+                                        )
+                                    }
                                 }
                             },
                             colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = Color.Transparent, // Make TopAppBar transparent so our blurry box shows
+                                containerColor = Color.Transparent,
                                 titleContentColor = MaterialTheme.colorScheme.onBackground,
                                 actionIconContentColor = MaterialTheme.colorScheme.onBackground,
                                 navigationIconContentColor = MaterialTheme.colorScheme.onBackground

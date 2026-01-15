@@ -4,7 +4,9 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -40,6 +42,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -49,6 +52,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.request.videoFrameMillis
+import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.foundation.shape.CircleShape
 import com.chintan992.xplayer.VideoFolder
 import com.chintan992.xplayer.FieldVisibility
 import com.chintan992.xplayer.ui.theme.BrandAccent
@@ -70,8 +75,8 @@ fun FolderList(
         contentPadding = androidx.compose.foundation.layout.PaddingValues(
             start = Dimens.SpacingMedium,
             end = Dimens.SpacingMedium,
-            top = contentPadding.calculateTopPadding() + Dimens.SpacingSmall,
-            bottom = contentPadding.calculateBottomPadding() + Dimens.SpacingSmall
+            top = contentPadding.calculateTopPadding() + Dimens.SpacingMedium,
+            bottom = contentPadding.calculateBottomPadding() + Dimens.SpacingLarge // Extra bottom padding
         ),
         verticalArrangement = Arrangement.spacedBy(Dimens.SpacingMedium)
     ) {
@@ -101,44 +106,36 @@ fun FolderListItem(
 ) {
     val context = LocalContext.current
     
-    // Animated selection effects - only show border when selected
-    val borderColor by animateColorAsState(
-        targetValue = if (isSelected) BrandAccent else Color.Transparent,
+    // Animated selection effects
+    val scale by animateFloatAsState(
+        targetValue = if (isSelected) 0.95f else 1f,
         animationSpec = spring(stiffness = Spring.StiffnessMedium),
-        label = "folderBorderColor"
+        label = "folderScale"
     )
-    val containerColor by animateColorAsState(
-        targetValue = if (isSelected) BrandAccent.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerLow,
-        animationSpec = spring(stiffness = Spring.StiffnessMedium),
-        label = "folderContainerColor"
+    val overlayAlpha by animateFloatAsState(
+        targetValue = if (isSelected) 0.1f else 0f,
+        animationSpec = tween(200),
+        label = "folderOverlay"
     )
-    
+
+    // Using SurfaceContainerLow (Dark Grey) for card background against Black screen
+    val cardColor = MaterialTheme.colorScheme.surfaceContainerLow
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(88.dp)
-            .animateContentSize(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            )
+            .height(100.dp) // Increased height for premium feel
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .clip(RoundedCornerShape(16.dp))
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
-             )
-            .then(
-                if (isSelected) Modifier.border(
-                    width = 2.dp, 
-                    color = borderColor, 
-                    shape = RoundedCornerShape(16.dp)
-                ) else Modifier
-            ),
+             ),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = containerColor
+            containerColor = cardColor
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp) // Flat look
     ) {
         Row(
             modifier = Modifier
@@ -147,12 +144,12 @@ fun FolderListItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Folder Thumbnail / Icon
+            // Folder Thumbnail
             Box(
                 modifier = Modifier
-                    .size(64.dp)
+                    .size(76.dp) // Larger thumbnail
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)), // Fallback color
                 contentAlignment = Alignment.Center
             ) {
                 if (folder.thumbnailUri != null) {
@@ -175,19 +172,19 @@ fun FolderListItem(
                     )
                 }
                 
-                // Selection Overlay
-                if (isSelectionMode) {
+                // Selection Checkmark Overlay
+                if (isSelected) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.4f)),
+                            .background(Color.Black.copy(alpha = 0.6f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
+                            imageVector = Icons.Default.CheckCircle,
                             contentDescription = null,
-                            tint = if (isSelected) BrandAccent else Color.White,
-                            modifier = Modifier.size(24.dp)
+                            tint = BrandAccent,
+                            modifier = Modifier.size(32.dp).background(Color.White, CircleShape).padding(2.dp)
                         )
                     }
                 }
@@ -201,22 +198,37 @@ fun FolderListItem(
                 Text(
                     text = folder.name,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.Bold, // Bold for better readability
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface 
                 )
-                Text(
-                    text = "${folder.videoCount} videos",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                // Metadata Badge
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Videocam, 
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "${folder.videoCount} videos",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
             
-            // Optional: Chevron or meta info
-             if (folder.totalSize > 0 && fieldVisibility.size) {
-                 // Maybe show size? Wireframe doesn't explicitly show it, just title/count
-             }
+            // Arrow icon for interactability hint
+            Icon(
+                imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            )
         }
     }
 }
