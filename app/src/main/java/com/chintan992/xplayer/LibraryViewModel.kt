@@ -107,6 +107,13 @@ class LibraryViewModel @Inject constructor(
         }
     }
 
+    // Search State
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery = _searchQuery.asStateFlow()
+
+    private val _isSearching = MutableStateFlow(false)
+    val isSearching = _isSearching.asStateFlow()
+
     // Refresh trigger
     private val _refreshTrigger = MutableStateFlow(0)
 
@@ -129,13 +136,19 @@ class LibraryViewModel @Inject constructor(
         }
     }
 
-    // Sorted videos based on settings
-    val videos = combine(rawVideos, settings) { videoList, settings ->
+    // Sorted videos based on settings & Search
+    val videos = combine(rawVideos, settings, _searchQuery) { videoList, settings, query ->
+        val filtered = if (query.isBlank()) {
+            videoList
+        } else {
+            videoList.filter { it.name.contains(query, ignoreCase = true) }
+        }
+
         val sorted = when (settings.sortBy) {
-            SortBy.TITLE -> videoList.sortedBy { it.name.lowercase() }
-            SortBy.DATE -> videoList.sortedBy { it.dateModified }
-            SortBy.SIZE -> videoList.sortedBy { it.size }
-            SortBy.DURATION -> videoList.sortedBy { it.duration }
+            SortBy.TITLE -> filtered.sortedBy { it.name.lowercase() }
+            SortBy.DATE -> filtered.sortedBy { it.dateModified }
+            SortBy.SIZE -> filtered.sortedBy { it.size }
+            SortBy.DURATION -> filtered.sortedBy { it.duration }
         }
         if (settings.sortOrder == SortOrder.DESCENDING) sorted.reversed() else sorted
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -150,18 +163,27 @@ class LibraryViewModel @Inject constructor(
         repository.getVideoFolders(showHidden)
     }
 
-    // Sorted folders based on settings
-    val folders = combine(rawFolders, settings) { folderList, settings ->
+    // Sorted folders based on settings & Search
+    val folders = combine(rawFolders, settings, _searchQuery) { folderList, settings, query ->
+        val filtered = if (query.isBlank()) {
+            folderList
+        } else {
+            folderList.filter { it.name.contains(query, ignoreCase = true) }
+        }
+
         val sorted = when (settings.sortBy) {
-            SortBy.TITLE -> folderList.sortedBy { it.name.lowercase() }
-            SortBy.DATE -> folderList // No date for folders yet
-            SortBy.SIZE -> folderList.sortedBy { it.totalSize }
-            SortBy.DURATION -> folderList // No duration for folders
+            SortBy.TITLE -> filtered.sortedBy { it.name.lowercase() }
+            SortBy.DATE -> filtered // No date for folders yet
+            SortBy.SIZE -> filtered.sortedBy { it.totalSize }
+            SortBy.DURATION -> filtered // No duration for folders
         }
         if (settings.sortOrder == SortOrder.DESCENDING) sorted.reversed() else sorted
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun toggleViewMode() {
+        if (_isSearching.value) {
+            exitSearchMode()
+        }
         _viewMode.value = when (_viewMode.value) {
             ViewMode.ALL_VIDEOS -> ViewMode.FOLDERS
             ViewMode.FOLDERS -> ViewMode.ALL_VIDEOS
@@ -172,6 +194,9 @@ class LibraryViewModel @Inject constructor(
     }
 
     fun selectFolder(folder: VideoFolder) {
+        if (_isSearching.value) {
+            exitSearchMode()
+        }
         _selectedFolder.value = folder
     }
 
@@ -180,12 +205,35 @@ class LibraryViewModel @Inject constructor(
     }
 
     fun onBackPressed(): Boolean {
-        return if (_selectedFolder.value != null) {
+        if (_isSearching.value) {
+            exitSearchMode()
+            return true
+        } else if (isSelectionMode.value) {
+            exitSelectionMode()
+            return true
+        } else if (_selectedFolder.value != null) {
             _selectedFolder.value = null
-            true
+            return true
         } else {
-            false
+            return false
         }
+    }
+
+    // Search Functions
+    fun toggleSearch() {
+        _isSearching.value = !_isSearching.value
+        if (!_isSearching.value) {
+            _searchQuery.value = ""
+        }
+    }
+
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    fun exitSearchMode() {
+        _isSearching.value = false
+        _searchQuery.value = ""
     }
 
     // Settings functions
@@ -243,6 +291,9 @@ class LibraryViewModel @Inject constructor(
     private var pendingDeleteVideos: List<VideoItem> = emptyList()
 
     fun enterSelectionMode() {
+        if (_isSearching.value) {
+            exitSearchMode()
+        }
         _isSelectionMode.value = true
     }
 

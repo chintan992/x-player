@@ -102,6 +102,9 @@ fun LibraryScreen(
         val isSelectionMode by viewModel.isSelectionMode.collectAsState()
         val selectedVideos by viewModel.selectedVideos.collectAsState()
         val selectedFolders by viewModel.selectedFolders.collectAsState()
+
+        val isSearching by viewModel.isSearching.collectAsState()
+        val searchQuery by viewModel.searchQuery.collectAsState()
         
         val lifecycleOwner = LocalLifecycleOwner.current
         val context = LocalContext.current
@@ -177,12 +180,8 @@ fun LibraryScreen(
         }
 
         // Handle back press
-        BackHandler(enabled = isSelectionMode || selectedFolder != null) {
-            if (isSelectionMode) {
-                viewModel.exitSelectionMode()
-            } else {
-                viewModel.clearSelectedFolder()
-            }
+        BackHandler(enabled = isSelectionMode || selectedFolder != null || isSearching) {
+            viewModel.onBackPressed()
         }
 
             val topBarHeight = 64.dp // Standard TopAppBar height
@@ -207,7 +206,7 @@ fun LibraryScreen(
                 )
                 
                 when {
-                    viewMode == ViewMode.FOLDERS && selectedFolder == null -> {
+                    viewMode == ViewMode.FOLDERS && selectedFolder == null && !isSearching -> {
                         if (folders.isEmpty()) {
                             EmptyState(modifier = Modifier.padding(top = topInset + topBarHeight), message = stringResource(R.string.empty_folders))
                         } else {
@@ -227,51 +226,91 @@ fun LibraryScreen(
                         }
                     }
                     else -> {
-                        if (videos.isEmpty()) {
-                             EmptyState(
-                                modifier = Modifier.padding(top = topInset + topBarHeight), 
-                                message = if (selectedFolder != null) stringResource(R.string.empty_videos_folder) else stringResource(R.string.empty_videos)
-                            )
+                        // Video List (All videos, folder contents, or SEARCH RESULTS)
+                        // If searching in folders mode and no folder selected, we show filtered folders?
+                        // The ViewModel logic currently filters 'folders' if search query is present.
+                        // So if we are in FOLDERS view mode and searching, we should show the filtered 'FolderList'
+                        // UNLESS logic changes to search global videos?
+                        // Current logic: 
+                        // videos = rawVideos + filter
+                        // folders = rawFolders + filter
+                        // rawVideos depends on selectedFolder.
+                        // if selectedFolder is NULL, rawVideos is ALL videos.
+                        
+                        // Let's refine the UI logic to match ViewModel flows:
+                        
+                        if (viewMode == ViewMode.FOLDERS && selectedFolder == null) {
+                             // Showing Folders (Filtered or not)
+                             if (folders.isEmpty()) {
+                                 val msg = if (searchQuery.isNotEmpty()) "No folders found for \"$searchQuery\"" else stringResource(R.string.empty_folders)
+                                 EmptyState(modifier = Modifier.padding(top = topInset + topBarHeight), message = msg)
+                             } else {
+                                FolderList(
+                                    folders = folders,
+                                    onFolderClick = { 
+                                        if (isSelectionMode) viewModel.toggleFolderSelection(it) 
+                                        else viewModel.selectFolder(it) 
+                                    },
+                                    onFolderLongClick = { viewModel.toggleFolderSelection(it) },
+                                    isSelectionMode = isSelectionMode,
+                                    selectedFolders = selectedFolders,
+                                    fieldVisibility = settings.fieldVisibility,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = listContentPadding
+                                )
+                             }
                         } else {
-                            val handleVideoClick: (VideoItem) -> Unit = { video ->
-                                if (isSelectionMode) {
-                                    viewModel.toggleVideoSelection(video)
-                                } else {
-                                    val index = videos.indexOf(video)
-                                    if (index != -1) {
-                                        PlaylistManager.setPlaylist(videos, index)
+                            // Showing Videos (All Videos, Folder Content, or Search Results for videos)
+                            if (videos.isEmpty()) {
+                                 val msg = if (searchQuery.isNotEmpty()) "No videos found for \"$searchQuery\"" 
+                                           else if (selectedFolder != null) stringResource(R.string.empty_videos_folder) 
+                                           else stringResource(R.string.empty_videos)
+                                           
+                                 EmptyState(
+                                    modifier = Modifier.padding(top = topInset + topBarHeight), 
+                                    message = msg
+                                )
+                            } else {
+                                val handleVideoClick: (VideoItem) -> Unit = { video ->
+                                    if (isSelectionMode) {
+                                        viewModel.toggleVideoSelection(video)
+                                    } else {
+                                        val index = videos.indexOf(video)
+                                        if (index != -1) {
+                                            PlaylistManager.setPlaylist(videos, index)
+                                        }
+                                        onVideoClick(video)
                                     }
-                                    onVideoClick(video)
                                 }
-                            }
-
-                            when (settings.layoutType) {
-                                LayoutType.GRID -> VideoGrid(
-                                    videos = videos,
-                                    onVideoClick = handleVideoClick,
-                                    onVideoLongClick = { viewModel.toggleVideoSelection(it) },
-                                    isSelectionMode = isSelectionMode,
-                                    selectedVideoIds = selectedVideos,
-                                    fieldVisibility = settings.fieldVisibility,
-                                    playbackPositions = playbackPositions,
-                                    animatedVisibilityScope = animatedVisibilityScope,
-                                    sharedTransitionScope = sharedTransitionScope,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentPadding = listContentPadding
-                                )
-                                LayoutType.LIST -> VideoList(
-                                    videos = videos,
-                                    onVideoClick = handleVideoClick,
-                                    onVideoLongClick = { viewModel.toggleVideoSelection(it) },
-                                    isSelectionMode = isSelectionMode,
-                                    selectedVideoIds = selectedVideos,
-                                    fieldVisibility = settings.fieldVisibility,
-                                    playbackPositions = playbackPositions,
-                                    animatedVisibilityScope = animatedVisibilityScope,
-                                    sharedTransitionScope = sharedTransitionScope,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentPadding = listContentPadding
-                                )
+    
+                                when (settings.layoutType) {
+                                    LayoutType.GRID -> VideoGrid(
+                                        videos = videos,
+                                        onVideoClick = handleVideoClick,
+                                        onVideoLongClick = { viewModel.toggleVideoSelection(it) },
+                                        isSelectionMode = isSelectionMode,
+                                        selectedVideoIds = selectedVideos,
+                                        fieldVisibility = settings.fieldVisibility,
+                                        playbackPositions = playbackPositions,
+                                        animatedVisibilityScope = animatedVisibilityScope,
+                                        sharedTransitionScope = sharedTransitionScope,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentPadding = listContentPadding
+                                    )
+                                    LayoutType.LIST -> VideoList(
+                                        videos = videos,
+                                        onVideoClick = handleVideoClick,
+                                        onVideoLongClick = { viewModel.toggleVideoSelection(it) },
+                                        isSelectionMode = isSelectionMode,
+                                        selectedVideoIds = selectedVideos,
+                                        fieldVisibility = settings.fieldVisibility,
+                                        playbackPositions = playbackPositions,
+                                        animatedVisibilityScope = animatedVisibilityScope,
+                                        sharedTransitionScope = sharedTransitionScope,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentPadding = listContentPadding
+                                    )
+                                }
                             }
                         }
                     }
@@ -286,82 +325,91 @@ fun LibraryScreen(
                         .background(MaterialTheme.colorScheme.background.copy(alpha = 0.9f)) // Translucent
                         // .blur(20.dp) // TODO: Check if blur is supported, sticking to alpha for safety/consistency for now
                 ) {
-                     androidx.compose.material3.TopAppBar(
-                        title = {
-                             if (isSelectionMode) {
-                                 Text(
-                                     text = "${viewModel.getSelectedCount()} Selected",
-                                     fontWeight = FontWeight.SemiBold
-                                 )
-                             } else {
-                                Text(
-                                    text = "XPlayer", // Brand Title
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 28.sp // Match wireframe size
-                                )
-                            }
-                        },
-                        navigationIcon = {
-                            if (isSelectionMode) {
-                                 IconButton(onClick = { viewModel.exitSelectionMode() }) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Close,
-                                        contentDescription = stringResource(R.string.content_desc_close_selection)
+                     if (isSearching) {
+                         // SEARCH BAR
+                         com.chintan992.xplayer.library.ui.SearchAppBar(
+                             query = searchQuery,
+                             onQueryChange = { viewModel.updateSearchQuery(it) },
+                             onCloseClicked = { viewModel.exitSearchMode() }
+                         )
+                     } else {
+                         androidx.compose.material3.TopAppBar(
+                            title = {
+                                 if (isSelectionMode) {
+                                     Text(
+                                         text = "${viewModel.getSelectedCount()} Selected",
+                                         fontWeight = FontWeight.SemiBold
+                                     )
+                                 } else {
+                                    Text(
+                                        text = if (selectedFolder != null) selectedFolder!!.name else "XPlayer", // Brand Title or Folder Name
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 28.sp // Match wireframe size
                                     )
                                 }
-                            } else if (selectedFolder != null) {
-                                IconButton(onClick = { viewModel.clearSelectedFolder() }) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                        contentDescription = stringResource(R.string.action_back)
-                                    )
+                            },
+                            navigationIcon = {
+                                if (isSelectionMode) {
+                                     IconButton(onClick = { viewModel.exitSelectionMode() }) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Close,
+                                            contentDescription = stringResource(R.string.content_desc_close_selection)
+                                        )
+                                    }
+                                } else if (selectedFolder != null) {
+                                    IconButton(onClick = { viewModel.clearSelectedFolder() }) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                            contentDescription = stringResource(R.string.action_back)
+                                        )
+                                    }
                                 }
-                            }
-                        },
-                        actions = {
-                            if (isSelectionMode) {
-                                 // No actions here
-                            } else {
-                                // Sort Button
-                                IconButton(onClick = { viewModel.showSettings() }) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.Sort,
-                                        contentDescription = "Sort"
-                                    )
+                            },
+                            actions = {
+                                if (isSelectionMode) {
+                                     // No actions here
+                                } else {
+                                    // Sort Button
+                                    IconButton(onClick = { viewModel.showSettings() }) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.Sort,
+                                            contentDescription = "Sort"
+                                        )
+                                    }
+                                    
+                                    // Settings button
+                                    IconButton(onClick = { onSettingsClick() }) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Settings,
+                                            contentDescription = stringResource(R.string.action_settings)
+                                        )
+                                    }
+                                    
+                                    // Search Button
+                                    IconButton(onClick = { viewModel.toggleSearch() }) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Search,
+                                            contentDescription = "Search"
+                                        )
+                                    }
+                                    
+                                    // Select Button
+                                    IconButton(onClick = { viewModel.enterSelectionMode() }) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.CheckBox,
+                                            contentDescription = "Select"
+                                        )
+                                    }
                                 }
-                                
-                                // Settings button
-                                IconButton(onClick = { onSettingsClick() }) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Settings,
-                                        contentDescription = stringResource(R.string.action_settings)
-                                    )
-                                }
-                                
-                                // Search Button (Placeholder)
-                                IconButton(onClick = { /* TODO: Search */ }) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Search,
-                                        contentDescription = "Search"
-                                    )
-                                }
-                                
-                                // Select Button
-                                IconButton(onClick = { viewModel.enterSelectionMode() }) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.CheckBox,
-                                        contentDescription = "Select"
-                                    )
-                                }
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = Color.Transparent, // Make TopAppBar transparent so our blurry box shows
-                            titleContentColor = MaterialTheme.colorScheme.onBackground,
-                            actionIconContentColor = MaterialTheme.colorScheme.onBackground,
-                            navigationIconContentColor = MaterialTheme.colorScheme.onBackground
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = Color.Transparent, // Make TopAppBar transparent so our blurry box shows
+                                titleContentColor = MaterialTheme.colorScheme.onBackground,
+                                actionIconContentColor = MaterialTheme.colorScheme.onBackground,
+                                navigationIconContentColor = MaterialTheme.colorScheme.onBackground
+                            )
                         )
-                    )
+                    }
                 }
 
                 // BOTTOM BAR (Overlay)
