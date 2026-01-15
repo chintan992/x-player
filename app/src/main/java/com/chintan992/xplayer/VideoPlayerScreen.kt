@@ -380,12 +380,13 @@ fun VideoPlayerScreen(
                 )
             } else {
                 // ExoPlayer View
+                val keepScreenOnSetting = viewModel.isKeepScreenOnEnabled()
                 AndroidView(
                     factory = { context ->
                         PlayerView(context).apply {
                             this.player = player
                             useController = false
-                            keepScreenOn = true
+                            keepScreenOn = keepScreenOnSetting
                             setShowBuffering(androidx.media3.ui.PlayerView.SHOW_BUFFERING_NEVER)
                             resizeMode = when (uiState.aspectRatioMode) {
                                 AspectRatioMode.FIT -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
@@ -403,6 +404,7 @@ fun VideoPlayerScreen(
                     },
                     update = { playerView ->
                         playerView.player = player
+                        playerView.keepScreenOn = keepScreenOnSetting
                         playerView.resizeMode = when (uiState.aspectRatioMode) {
                             AspectRatioMode.FIT -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
                             AspectRatioMode.FILL -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM

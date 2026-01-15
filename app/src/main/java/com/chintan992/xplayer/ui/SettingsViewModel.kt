@@ -16,15 +16,90 @@ class SettingsViewModel @Inject constructor(
 ) : ViewModel() {
 
     val defaultPlayerType: StateFlow<String> = playerPreferencesRepository.defaultPlayerType
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = "EXO"
-        )
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "EXO")
+
+    val defaultOrientation: StateFlow<Boolean> = playerPreferencesRepository.defaultOrientation
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 
+            PlayerPreferencesRepository.Defaults.ORIENTATION_LANDSCAPE)
+
+    val defaultSpeed: StateFlow<Float> = playerPreferencesRepository.defaultSpeed
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 
+            PlayerPreferencesRepository.Defaults.SPEED)
+
+    val defaultAspectRatio: StateFlow<String> = playerPreferencesRepository.defaultAspectRatio
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 
+            PlayerPreferencesRepository.Defaults.ASPECT_RATIO)
+
+    val defaultDecoder: StateFlow<String> = playerPreferencesRepository.defaultDecoder
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 
+            PlayerPreferencesRepository.Defaults.DECODER)
+
+    val autoPlayNext: StateFlow<Boolean> = playerPreferencesRepository.autoPlayNext
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 
+            PlayerPreferencesRepository.Defaults.AUTO_PLAY)
+
+    val seekDuration: StateFlow<Int> = playerPreferencesRepository.seekDuration
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 
+            PlayerPreferencesRepository.Defaults.SEEK_DURATION_SECONDS)
+
+    val longPressSpeed: StateFlow<Float> = playerPreferencesRepository.longPressSpeed
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 
+            PlayerPreferencesRepository.Defaults.LONG_PRESS_SPEED)
+
+    val controlsTimeout: StateFlow<Int> = playerPreferencesRepository.controlsTimeout
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 
+            PlayerPreferencesRepository.Defaults.CONTROLS_TIMEOUT_MS)
+
+    val resumePlayback: StateFlow<Boolean> = playerPreferencesRepository.resumePlayback
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 
+            PlayerPreferencesRepository.Defaults.RESUME_PLAYBACK)
+
+    val keepScreenOn: StateFlow<Boolean> = playerPreferencesRepository.keepScreenOn
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 
+            PlayerPreferencesRepository.Defaults.KEEP_SCREEN_ON)
 
     fun updateDefaultPlayerType(type: String) {
-        viewModelScope.launch {
-            playerPreferencesRepository.updateDefaultPlayerType(type)
-        }
+        viewModelScope.launch { playerPreferencesRepository.updateDefaultPlayerType(type) }
+    }
+
+    fun updateDefaultOrientation(isLandscape: Boolean) {
+        viewModelScope.launch { playerPreferencesRepository.updateDefaultOrientation(isLandscape) }
+    }
+
+    fun updateDefaultSpeed(speed: Float) {
+        viewModelScope.launch { playerPreferencesRepository.updateDefaultSpeed(speed) }
+    }
+
+    fun updateDefaultAspectRatio(aspectRatio: String) {
+        viewModelScope.launch { playerPreferencesRepository.updateDefaultAspectRatio(aspectRatio) }
+    }
+
+    fun updateDefaultDecoder(decoder: String) {
+        viewModelScope.launch { playerPreferencesRepository.updateDefaultDecoder(decoder) }
+    }
+
+    fun updateAutoPlayNext(enabled: Boolean) {
+        viewModelScope.launch { playerPreferencesRepository.updateAutoPlayNext(enabled) }
+    }
+
+    fun updateSeekDuration(seconds: Int) {
+        viewModelScope.launch { playerPreferencesRepository.updateSeekDuration(seconds) }
+    }
+
+    fun updateLongPressSpeed(speed: Float) {
+        viewModelScope.launch { playerPreferencesRepository.updateLongPressSpeed(speed) }
+    }
+
+    fun updateControlsTimeout(timeoutMs: Int) {
+        viewModelScope.launch { playerPreferencesRepository.updateControlsTimeout(timeoutMs) }
+    }
+
+    fun updateResumePlayback(enabled: Boolean) {
+        viewModelScope.launch { playerPreferencesRepository.updateResumePlayback(enabled) }
+    }
+
+    fun updateKeepScreenOn(enabled: Boolean) {
+        viewModelScope.launch { playerPreferencesRepository.updateKeepScreenOn(enabled) }
     }
 }
+

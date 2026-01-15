@@ -14,6 +14,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -73,6 +74,13 @@ class PlayerViewModel @Inject constructor(
     private var positionUpdateJob: Job? = null
     private var currentVideoId: String? = null
     private var originalSpeed: Float = 1f
+    
+    // Settings-backed values
+    private var seekDurationSeconds: Int = PlayerPreferencesRepository.Defaults.SEEK_DURATION_SECONDS
+    private var controlsTimeoutMs: Int = PlayerPreferencesRepository.Defaults.CONTROLS_TIMEOUT_MS
+    private var longPressSpeedMultiplier: Float = PlayerPreferencesRepository.Defaults.LONG_PRESS_SPEED
+    private var resumePlaybackEnabled: Boolean = PlayerPreferencesRepository.Defaults.RESUME_PLAYBACK
+    private var keepScreenOnEnabled: Boolean = PlayerPreferencesRepository.Defaults.KEEP_SCREEN_ON
 
     private val playerListener = object : UniversalPlayer.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -97,6 +105,11 @@ class PlayerViewModel @Inject constructor(
                     duration = player.getDuration()
                 )
                 updateTrackInfo()
+            }
+            
+            // Auto-play next video when current video ends
+            if (state == UniversalPlayer.STATE_ENDED) {
+                playNextVideo()
             }
         }
 
@@ -129,20 +142,56 @@ class PlayerViewModel @Inject constructor(
     init {
         player.addListener(playerListener)
         
-        // Apply default player from settings
+        // Load all settings on init
         viewModelScope.launch {
-            playerPreferencesRepository.defaultPlayerType.collect { defaultType ->
-                val targetType = if (defaultType == "MPV") PlayerType.MPV else PlayerType.EXO
-                // Only switch if we haven't started playback yet and type differs
-                if (_uiState.value.playerType != targetType && currentMediaUri == null) {
-                    player.removeListener(playerListener)
-                    player = if (targetType == PlayerType.MPV) mpvPlayer else exoPlayer
-                    player.addListener(playerListener)
-                    _uiState.value = _uiState.value.copy(playerType = targetType)
-                }
+            // Load initial values
+            val defaultType = playerPreferencesRepository.defaultPlayerType.first()
+            val defaultOrientation = playerPreferencesRepository.defaultOrientation.first()
+            val defaultSpeed = playerPreferencesRepository.defaultSpeed.first()
+            val defaultAspect = playerPreferencesRepository.defaultAspectRatio.first()
+            val defaultDecoder = playerPreferencesRepository.defaultDecoder.first()
+            seekDurationSeconds = playerPreferencesRepository.seekDuration.first()
+            longPressSpeedMultiplier = playerPreferencesRepository.longPressSpeed.first()
+            controlsTimeoutMs = playerPreferencesRepository.controlsTimeout.first()
+            resumePlaybackEnabled = playerPreferencesRepository.resumePlayback.first()
+            keepScreenOnEnabled = playerPreferencesRepository.keepScreenOn.first()
+            
+            // Apply player type
+            val targetType = if (defaultType == "MPV") PlayerType.MPV else PlayerType.EXO
+            if (_uiState.value.playerType != targetType && currentMediaUri == null) {
+                player.removeListener(playerListener)
+                player = if (targetType == PlayerType.MPV) mpvPlayer else exoPlayer
+                player.addListener(playerListener)
             }
+            
+            // Apply aspect ratio
+            val aspectMode = try {
+                AspectRatioMode.valueOf(defaultAspect)
+            } catch (e: IllegalArgumentException) {
+                AspectRatioMode.FIT
+            }
+            
+            // Apply decoder mode
+            val decoderModeVal = try {
+                DecoderMode.valueOf(defaultDecoder)
+            } catch (e: IllegalArgumentException) {
+                DecoderMode.AUTO
+            }
+            
+            _uiState.value = _uiState.value.copy(
+                playerType = targetType,
+                isLandscape = defaultOrientation,
+                playbackSpeed = defaultSpeed,
+                aspectRatioMode = aspectMode,
+                decoderMode = decoderModeVal
+            )
+            
+            player.setPlaybackSpeed(defaultSpeed)
         }
     }
+    
+    // Expose settings for UI (e.g., keep screen on)
+    fun isKeepScreenOnEnabled(): Boolean = keepScreenOnEnabled
 
     fun setPlayer(videoTitle: String, videoId: String? = null) {
         // This method was previously used to attach the ExoPlayer instance from the Activity/Fragment
@@ -244,41 +293,66 @@ class PlayerViewModel @Inject constructor(
         showControls()
     }
 
-    fun seekForward(seconds: Long = 10) {
+    fun seekForward(seconds: Long = seekDurationSeconds.toLong()) {
         val newPos = (player.getCurrentPosition() + seconds * 1000).coerceAtMost(player.getDuration())
         seekTo(newPos)
     }
 
-    fun seekBackward(seconds: Long = 10) {
+    fun seekBackward(seconds: Long = seekDurationSeconds.toLong()) {
         val newPos = (player.getCurrentPosition() - seconds * 1000).coerceAtLeast(0)
         seekTo(newPos)
     }
 
     fun seekToNext() {
-        // UniversalPlayer currently doesn't expose playlist navigation explicitly
-        // Logic for playlist nav should likely be inside UniversalPlayer or handled by upper layer feeding new URLs
-        // For now, assuming single video or not implemented in interface yet
+        playNextVideo()
     }
 
     fun seekToPrevious() {
-        // Same as above
+        playPreviousVideo()
+    }
+    
+    /**
+     * Plays the next video in the playlist if available
+     */
+    private fun playNextVideo() {
+        val nextVideo = PlaylistManager.getNextVideo()
+        if (nextVideo != null) {
+            currentVideoId = nextVideo.id.toString()
+            playDirectly(nextVideo.uri.toString(), nextVideo.name, emptyMap(), nextVideo.subtitleUri)
+        }
+    }
+    
+    /**
+     * Plays the previous video in the playlist if available
+     */
+    private fun playPreviousVideo() {
+        val previousVideo = PlaylistManager.getPreviousVideo()
+        if (previousVideo != null) {
+            currentVideoId = previousVideo.id.toString()
+            playDirectly(previousVideo.uri.toString(), previousVideo.name, emptyMap(), previousVideo.subtitleUri)
+        }
     }
 
-    fun setPlaybackSpeed(speed: Float) {
+    fun setPlaybackSpeed(speed: Float, persistToSettings: Boolean = true) {
         if (!_uiState.value.isSpeedOverridden) {
             player.setPlaybackSpeed(speed)
             _uiState.value = _uiState.value.copy(playbackSpeed = speed)
             showControls()
+            if (persistToSettings) {
+                viewModelScope.launch {
+                    playerPreferencesRepository.updateDefaultSpeed(speed)
+                }
+            }
         }
     }
 
     fun startSpeedOverride() {
         if (!_uiState.value.isSpeedOverridden) {
             originalSpeed = _uiState.value.playbackSpeed
-            player.setPlaybackSpeed(2f)
+            player.setPlaybackSpeed(longPressSpeedMultiplier)
             _uiState.value = _uiState.value.copy(
                 isSpeedOverridden = true,
-                playbackSpeed = 2f
+                playbackSpeed = longPressSpeedMultiplier
             )
         }
     }
@@ -335,25 +409,29 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun toggleOrientation() {
-        _uiState.value = _uiState.value.copy(
-            isLandscape = !_uiState.value.isLandscape
-        )
+        val newLandscape = !_uiState.value.isLandscape
+        _uiState.value = _uiState.value.copy(isLandscape = newLandscape)
         showControls()
+        // Persist to settings
+        viewModelScope.launch {
+            playerPreferencesRepository.updateDefaultOrientation(newLandscape)
+        }
     }
 
     fun cycleAspectRatio() {
         val modes = AspectRatioMode.entries
         val currentIndex = modes.indexOf(_uiState.value.aspectRatioMode)
         val nextIndex = (currentIndex + 1) % modes.size
-        _uiState.value = _uiState.value.copy(
-            aspectRatioMode = modes[nextIndex]
-        )
-        showControls()
+        setAspectRatio(modes[nextIndex])
     }
 
     fun setAspectRatio(mode: AspectRatioMode) {
         _uiState.value = _uiState.value.copy(aspectRatioMode = mode)
         showControls()
+        // Persist to settings
+        viewModelScope.launch {
+            playerPreferencesRepository.updateDefaultAspectRatio(mode.name)
+        }
     }
 
     fun cycleDecoderMode() {
@@ -367,12 +445,16 @@ class PlayerViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(decoderMode = mode)
         player.setDecoderMode(mode)
         showControls()
+        // Persist to settings
+        viewModelScope.launch {
+            playerPreferencesRepository.updateDefaultDecoder(mode.name)
+        }
     }
 
     private fun scheduleHideControls() {
         hideControlsJob?.cancel()
         hideControlsJob = viewModelScope.launch {
-            delay(3000)
+            delay(controlsTimeoutMs.toLong())
             if (_uiState.value.isPlaying && !_uiState.value.isLocked) {
                 _uiState.value = _uiState.value.copy(controlsVisible = false)
             }

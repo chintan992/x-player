@@ -20,4 +20,28 @@ object PlaylistManager {
         }
         return null
     }
+    
+    fun hasNextVideo(): Boolean {
+        return currentPlaylist.isNotEmpty() && currentVideoIndex < currentPlaylist.size - 1
+    }
+    
+    fun getNextVideo(): VideoItem? {
+        if (hasNextVideo()) {
+            currentVideoIndex++
+            return currentPlaylist[currentVideoIndex]
+        }
+        return null
+    }
+    
+    fun hasPreviousVideo(): Boolean {
+        return currentPlaylist.isNotEmpty() && currentVideoIndex > 0
+    }
+    
+    fun getPreviousVideo(): VideoItem? {
+        if (hasPreviousVideo()) {
+            currentVideoIndex--
+            return currentPlaylist[currentVideoIndex]
+        }
+        return null
+    }
 }

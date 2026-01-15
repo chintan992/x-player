@@ -30,6 +30,9 @@ mpvAndroid = "0.1.10"
 smbj = "0.14.0"
 commonsNet = "3.12.0"
 sardineAndroid = "0.9"
+mockk = "1.13.9"
+turbine = "1.0.0"
+coroutinesTest = "1.7.3"
 
 [libraries]
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
@@ -75,6 +78,9 @@ mpv-android = { group = "io.github.abdallahmehiz", name = "mpv-android-lib", ver
 smbj = { group = "com.hierynomus", name = "smbj", version.ref = "smbj" }
 commons-net = { group = "commons-net", name = "commons-net", version.ref = "commonsNet" }
 sardine-android = { group = "com.github.thegrizzlylabs", name = "sardine-android", version.ref = "sardineAndroid" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutinesTest" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
