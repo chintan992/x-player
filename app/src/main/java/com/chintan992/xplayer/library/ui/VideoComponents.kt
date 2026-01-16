@@ -101,7 +101,7 @@ fun AutoScrollHandler(
     }
 }
 
-@OptIn(ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun VideoGrid(
     videos: List<VideoItem>,
@@ -109,6 +109,7 @@ fun VideoGrid(
     onVideoLongClick: (VideoItem) -> Unit,
     isSelectionMode: Boolean,
     selectedVideoIds: Set<Long>,
+    playedVideoIds: Set<String>,
     fieldVisibility: FieldVisibility,
     playbackPositions: Map<String, Pair<Long, Long>>,
     scrollToVideoId: String? = null,
@@ -144,6 +145,7 @@ fun VideoGrid(
                 fieldVisibility = fieldVisibility,
                 isSelectionMode = isSelectionMode,
                 isSelected = isSelected,
+                isNew = isNewVideo(video, playedVideoIds),
                 playbackPosition = positionInfo,
                 onClick = { onVideoClick(video) },
                 onLongClick = { onVideoLongClick(video) },
@@ -158,7 +160,7 @@ fun VideoGrid(
     }
 }
 
-@OptIn(ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun VideoList(
     videos: List<VideoItem>,
@@ -166,6 +168,7 @@ fun VideoList(
     onVideoLongClick: (VideoItem) -> Unit,
     isSelectionMode: Boolean,
     selectedVideoIds: Set<Long>,
+    playedVideoIds: Set<String>,
     fieldVisibility: FieldVisibility,
     playbackPositions: Map<String, Pair<Long, Long>>,
     scrollToVideoId: String? = null,
@@ -191,7 +194,11 @@ fun VideoList(
         ),
         verticalArrangement = Arrangement.spacedBy(Dimens.SpacingMedium)
     ) {
-        items(videos, key = { it.id }) { video ->
+        items(
+            items = videos,
+            key = { it.id },
+            contentType = { "video_item" }
+        ) { video ->
             val positionInfo = playbackPositions[video.uri.toString()]
             val isSelected = selectedVideoIds.contains(video.id)
             VideoListItem(
@@ -199,15 +206,14 @@ fun VideoList(
                 fieldVisibility = fieldVisibility,
                 isSelectionMode = isSelectionMode,
                 isSelected = isSelected,
+                isNew = isNewVideo(video, playedVideoIds),
                 playbackPosition = positionInfo,
                 onClick = { onVideoClick(video) },
                 onLongClick = { onVideoLongClick(video) },
+                // Pass scopes but we might not use them heavily inside to save performance
                 animatedVisibilityScope = animatedVisibilityScope,
                 sharedTransitionScope = sharedTransitionScope,
-                modifier = Modifier.animateItem(
-                    fadeInSpec = tween(300),
-                    fadeOutSpec = tween(200)
-                )
+                modifier = Modifier
             )
         }
     }
@@ -220,6 +226,7 @@ fun VideoGridItem(
     fieldVisibility: FieldVisibility,
     isSelectionMode: Boolean,
     isSelected: Boolean,
+    isNew: Boolean,
     playbackPosition: Pair<Long, Long>?,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
@@ -296,6 +303,28 @@ fun VideoGridItem(
                 ) {
                     Text(
                         text = formatDuration(video.duration),
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp
+                    )
+                }
+            }
+            
+            // "New" Badge
+            if (isNew) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(6.dp)
+                        .background(
+                            BrandAccent,
+                            RoundedCornerShape(4.dp)
+                        )
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = "NEW",
                         color = Color.White,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
@@ -382,6 +411,7 @@ fun VideoListItem(
     fieldVisibility: FieldVisibility,
     isSelectionMode: Boolean,
     isSelected: Boolean,
+    isNew: Boolean,
     playbackPosition: Pair<Long, Long>?,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
@@ -417,23 +447,17 @@ fun VideoListItem(
              contentAlignment = Alignment.Center
         ) {
             if (fieldVisibility.thumbnail) {
-                with(sharedTransitionScope) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(context)
-                            .data(video.uri)
-                            .videoFrameMillis(1000)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = video.name,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .sharedElement(
-                                rememberSharedContentState(key = "video-${video.id}"),
-                                animatedVisibilityScope = animatedVisibilityScope
-                            ),
-                        contentScale = ContentScale.Crop
-                    )
-                }
+                // Optimization: Removing Shared Element Transition for list performance
+                 AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(video.uri)
+                        .videoFrameMillis(1000)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = video.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
                 
                 // Duration
                 if (fieldVisibility.duration) {
@@ -449,6 +473,28 @@ fun VideoListItem(
                             color = Color.White,
                             style = MaterialTheme.typography.labelSmall,
                             fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+                
+                // "New" Badge (Top Left of thumbnail)
+                if (isNew) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(4.dp)
+                            .background(
+                                BrandAccent,
+                                RoundedCornerShape(4.dp)
+                            )
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "NEW",
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 8.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -526,4 +572,19 @@ fun VideoListItem(
              }
         }
     }
+}
+
+/**
+ * Helper to check if a video is "New"
+ * Criteria: Added within last 3 days AND not yet played
+ */
+fun isNewVideo(video: VideoItem, playedIds: Set<String>): Boolean {
+    // 3 days in seconds
+    val threshold = 3 * 24 * 60 * 60
+    val now = System.currentTimeMillis() / 1000
+    val isRecent = (now - video.dateModified) < threshold
+    
+    // Check if ID is in played set
+    // Note: LibraryViewModel provides string IDs, VideoItem has Long ID.
+    return isRecent && !playedIds.contains(video.id.toString())
 }

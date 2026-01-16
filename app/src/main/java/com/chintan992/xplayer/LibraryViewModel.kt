@@ -98,6 +98,14 @@ class LibraryViewModel @Inject constructor(
     private val _playbackPositions = MutableStateFlow<Map<String, Pair<Long, Long>>>(emptyMap())
     val playbackPositions: StateFlow<Map<String, Pair<Long, Long>>> = _playbackPositions.asStateFlow()
 
+    // Played status for "New" badge
+    val playedVideoIds: StateFlow<Set<String>> = playbackPositionManager.getPlayedVideoIds()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptySet()
+        )
+
     init {
         refreshPlaybackPositions()
     }

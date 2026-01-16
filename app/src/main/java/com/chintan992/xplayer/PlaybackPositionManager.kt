@@ -106,4 +106,29 @@ class PlaybackPositionManager @Inject constructor(
             preferences[stringPreferencesKey("last_played_$folderPath")]
         }.first()
     }
+
+    /**
+     * Mark a video as "played" so the "New" badge is removed.
+     * We store a simple boolean marker key "played_VideoID"
+     */
+    suspend fun markAsPlayed(videoId: String) {
+        context.playbackDataStore.edit { preferences ->
+            preferences[androidx.datastore.preferences.core.booleanPreferencesKey("played_$videoId")] = true
+        }
+    }
+
+    /**
+     * Get a flow of all played video IDs (for UI badges)
+     */
+    fun getPlayedVideoIds(): kotlinx.coroutines.flow.Flow<Set<String>> {
+        return context.playbackDataStore.data.map { preferences ->
+            val playedIds = mutableSetOf<String>()
+            preferences.asMap().forEach { (key, value) ->
+                if (key.name.startsWith("played_") && value == true) {
+                    playedIds.add(key.name.removePrefix("played_"))
+                }
+            }
+            playedIds
+        }
+    }
 }

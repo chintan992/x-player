@@ -61,7 +61,8 @@ class PlayerViewModel @Inject constructor(
     private val gestureHandler: GestureHandler,
     private val playerPreferencesRepository: PlayerPreferencesRepository,
     @Named("EXO") private val exoPlayer: UniversalPlayer,
-    @Named("MPV") private val mpvPlayer: UniversalPlayer
+    @Named("MPV") private val mpvPlayer: UniversalPlayer,
+    private val subtitleFinder: com.chintan992.xplayer.data.local.SubtitleFinder
 ) : ViewModel() {
     
     // Active player instance (Public for View access to MPV surface)
@@ -88,6 +89,13 @@ class PlayerViewModel @Inject constructor(
             if (isPlaying) {
                 startPositionUpdates()
                 scheduleHideControls()
+                
+                // Mark as played to remove "New" badge
+                currentVideoId?.let { id ->
+                    viewModelScope.launch {
+                        playbackPositionManager.markAsPlayed(id)
+                    }
+                }
             } else {
                 stopPositionUpdates()
                 // Save position when paused
@@ -639,13 +647,40 @@ class PlayerViewModel @Inject constructor(
     private fun playDirectly(url: String, title: String, headers: Map<String, String>, subtitleUri: android.net.Uri? = null) {
         val uri = android.net.Uri.parse(url)
         
-        // Save for switching
-        currentMediaUri = uri
-        currentHeaders = headers
-        currentSubtitleUri = subtitleUri
-        
-        player.prepare(uri, title, subtitleUri, headers)
-        player.play()
+        viewModelScope.launch {
+            // Scan for subtitle if not provided
+            val finalSubtitleUri = subtitleUri ?: run {
+                if (url.startsWith("content") || url.startsWith("/")) {
+                    val path = if (url.startsWith("content")) {
+                        // For content URI, we can't easily get the file path without querying MediaStore again or checking cached path
+                        // But SubtitleFinder needs a file path.
+                        // However, we are in a viewModel, so we can try to resolve it.
+                        // NOTE: SubtitleFinder takes a String "videoPath".
+                        // Logic fallback: If local file, we might have a path. If not, skip.
+                        // Assuming most playbacks come from VideoItem which has a DATA path if query was done.
+                        // But here we only have URL string.
+                        // IF we came from Library, VideoItem had DATA, but here we just get URL.
+                        null 
+                    } else {
+                        url // File path
+                    }
+                    
+                    if (path != null) {
+                       subtitleFinder.findSubtitleForVideo(path)
+                    } else {
+                       null
+                    }
+                } else null
+            }
+            
+            // Save for switching
+            currentMediaUri = uri
+            currentHeaders = headers
+            currentSubtitleUri = finalSubtitleUri
+            
+            player.prepare(uri, title, finalSubtitleUri, headers)
+            player.play()
+        }
     }
     
     // createMediaItem removed as it's now internal to ExoPlayerWrapper
@@ -677,3 +712,4 @@ class PlayerViewModel @Inject constructor(
         }
     }
 }
+

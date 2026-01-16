@@ -75,7 +75,8 @@ class LocalMediaRepository @Inject constructor(
                 val uri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
                 
                 val folderPath = data.substringBeforeLast("/", "")
-                val subtitleUri = subtitleFinder.findSubtitleForVideo(data)
+                // Subtitle scanning removed for performance
+                val subtitleUri: Uri? = null
 
                 videoList.add(VideoItem(id, uri, name, duration, size, dateModified, folderPath, folderName, subtitleUri))
             }
@@ -134,7 +135,8 @@ class LocalMediaRepository @Inject constructor(
                 val folderName = it.getString(bucketColumn) ?: "Unknown"
                 val uri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
                 val folderPath = data.substringBeforeLast("/", "")
-                val subtitleUri = subtitleFinder.findSubtitleForVideo(data)
+                // Subtitle scanning removed for performance
+                val subtitleUri: Uri? = null
 
                 val video = VideoItem(id, uri, name, duration, size, dateModified, folderPath, folderName, subtitleUri)
                 folderMap.getOrPut(folderPath) { mutableListOf() }.add(video)
@@ -211,7 +213,8 @@ class LocalMediaRepository @Inject constructor(
                 val folderName = it.getString(bucketColumn) ?: "Unknown"
                 val uri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
                 val videoFolderPath = data.substringBeforeLast("/", "")
-                val subtitleUri = subtitleFinder.findSubtitleForVideo(data)
+                // Subtitle scanning removed for performance
+                val subtitleUri: Uri? = null
 
                 videoList.add(VideoItem(id, uri, name, duration, size, dateModified, videoFolderPath, folderName, subtitleUri))
             }

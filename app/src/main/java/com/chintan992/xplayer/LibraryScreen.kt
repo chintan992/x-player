@@ -97,6 +97,7 @@ fun LibraryScreen(
         val settings by viewModel.settings.collectAsState()
         val showSettingsDialog by viewModel.showSettingsDialog.collectAsState()
         val playbackPositions by viewModel.playbackPositions.collectAsState()
+        val playedVideoIds by viewModel.playedVideoIds.collectAsState()
         val scrollToVideoId by viewModel.scrollToVideoId.collectAsState()
         
         // Selection State
@@ -292,6 +293,7 @@ fun LibraryScreen(
                                         onVideoLongClick = { viewModel.toggleVideoSelection(it) },
                                         isSelectionMode = isSelectionMode,
                                         selectedVideoIds = selectedVideos,
+                                        playedVideoIds = playedVideoIds,
                                         fieldVisibility = settings.fieldVisibility,
                                         playbackPositions = playbackPositions,
                                         scrollToVideoId = scrollToVideoId,
@@ -307,6 +309,7 @@ fun LibraryScreen(
                                         onVideoLongClick = { viewModel.toggleVideoSelection(it) },
                                         isSelectionMode = isSelectionMode,
                                         selectedVideoIds = selectedVideos,
+                                        playedVideoIds = playedVideoIds,
                                         fieldVisibility = settings.fieldVisibility,
                                         playbackPositions = playbackPositions,
                                         scrollToVideoId = scrollToVideoId,
