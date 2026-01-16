@@ -404,7 +404,16 @@ fun SettingsScreen(
                     checked = autoPlayNext,
                     onCheckedChange = { viewModel.updateAutoPlayNext(it) }
                 )
-                
+
+                // Auto-scroll to last played
+                 SettingsItemToggle(
+                    icon = Icons.Outlined.History,
+                    title = "Auto-scroll to last played",
+                    subtitle = "Auto-scroll to last played media in folder",
+                    checked = viewModel.autoScrollToLastPlayed.collectAsState(initial = false).value,
+                    onCheckedChange = { viewModel.updateAutoScrollToLastPlayed(it) } 
+                )
+
                 // Resume Playback
                 SettingsItemToggle(
                     icon = Icons.Outlined.History,

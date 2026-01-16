@@ -6,13 +6,15 @@ import com.chintan992.xplayer.PlayerPreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val playerPreferencesRepository: PlayerPreferencesRepository
+    private val playerPreferencesRepository: PlayerPreferencesRepository,
+    private val libraryPreferencesRepository: com.chintan992.xplayer.LibraryPreferencesRepository
 ) : ViewModel() {
 
     val defaultPlayerType: StateFlow<String> = playerPreferencesRepository.defaultPlayerType
@@ -58,6 +60,11 @@ class SettingsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 
             PlayerPreferencesRepository.Defaults.KEEP_SCREEN_ON)
 
+    // Library Settings
+    val autoScrollToLastPlayed: StateFlow<Boolean> = libraryPreferencesRepository.folderViewSettings
+        .map { it.autoScrollToLastPlayed }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     fun updateDefaultPlayerType(type: String) {
         viewModelScope.launch { playerPreferencesRepository.updateDefaultPlayerType(type) }
     }
@@ -100,6 +107,10 @@ class SettingsViewModel @Inject constructor(
 
     fun updateKeepScreenOn(enabled: Boolean) {
         viewModelScope.launch { playerPreferencesRepository.updateKeepScreenOn(enabled) }
+    }
+
+    fun updateAutoScrollToLastPlayed(enabled: Boolean) {
+        viewModelScope.launch { libraryPreferencesRepository.updateAutoScrollToLastPlayed(enabled) }
     }
 }
 

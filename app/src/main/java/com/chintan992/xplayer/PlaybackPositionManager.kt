@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
@@ -85,6 +86,24 @@ class PlaybackPositionManager @Inject constructor(
                 }
             }
             result
+        }.first()
+    }
+
+    /**
+     * Save the last played video ID for a specific folder
+     */
+    suspend fun saveLastPlayedVideo(folderPath: String, videoId: String) {
+        context.playbackDataStore.edit { preferences ->
+            preferences[stringPreferencesKey("last_played_$folderPath")] = videoId
+        }
+    }
+
+    /**
+     * Get the last played video ID for a specific folder
+     */
+    suspend fun getLastPlayedVideo(folderPath: String): String? {
+        return context.playbackDataStore.data.map { preferences: Preferences ->
+            preferences[stringPreferencesKey("last_played_$folderPath")]
         }.first()
     }
 }

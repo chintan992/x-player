@@ -97,6 +97,7 @@ fun LibraryScreen(
         val settings by viewModel.settings.collectAsState()
         val showSettingsDialog by viewModel.showSettingsDialog.collectAsState()
         val playbackPositions by viewModel.playbackPositions.collectAsState()
+        val scrollToVideoId by viewModel.scrollToVideoId.collectAsState()
         
         // Selection State
         val isSelectionMode by viewModel.isSelectionMode.collectAsState()
@@ -279,6 +280,7 @@ fun LibraryScreen(
                                         if (index != -1) {
                                             PlaylistManager.setPlaylist(videos, index)
                                         }
+                                        viewModel.saveLastPlayed(video)
                                         onVideoClick(video)
                                     }
                                 }
@@ -292,6 +294,8 @@ fun LibraryScreen(
                                         selectedVideoIds = selectedVideos,
                                         fieldVisibility = settings.fieldVisibility,
                                         playbackPositions = playbackPositions,
+                                        scrollToVideoId = scrollToVideoId,
+                                        onScrollConsumed = viewModel::onScrollConsumed,
                                         animatedVisibilityScope = animatedVisibilityScope,
                                         sharedTransitionScope = sharedTransitionScope,
                                         modifier = Modifier.fillMaxSize(),
@@ -305,6 +309,8 @@ fun LibraryScreen(
                                         selectedVideoIds = selectedVideos,
                                         fieldVisibility = settings.fieldVisibility,
                                         playbackPositions = playbackPositions,
+                                        scrollToVideoId = scrollToVideoId,
+                                        onScrollConsumed = viewModel::onScrollConsumed,
                                         animatedVisibilityScope = animatedVisibilityScope,
                                         sharedTransitionScope = sharedTransitionScope,
                                         modifier = Modifier.fillMaxSize(),

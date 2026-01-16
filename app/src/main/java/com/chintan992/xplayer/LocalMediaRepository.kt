@@ -244,7 +244,7 @@ class LocalMediaRepository @Inject constructor(
         }
     }.flowOn(Dispatchers.IO)
 
-    fun getManualHiddenVideos(): List<VideoItem> {
+    suspend fun getManualHiddenVideos(): List<VideoItem> {
         val hiddenVideos = mutableListOf<VideoItem>()
         try {
             val root = android.os.Environment.getExternalStorageDirectory()

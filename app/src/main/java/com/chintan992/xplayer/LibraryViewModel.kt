@@ -66,7 +66,8 @@ data class FolderViewSettings(
     val sortBy: SortBy = SortBy.TITLE,
     val sortOrder: SortOrder = SortOrder.ASCENDING,
     val fieldVisibility: FieldVisibility = FieldVisibility(),
-    val showHiddenFolders: Boolean = false
+    val showHiddenFolders: Boolean = false,
+    val autoScrollToLastPlayed: Boolean = false
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -104,6 +105,7 @@ class LibraryViewModel @Inject constructor(
     fun refreshPlaybackPositions() {
         viewModelScope.launch {
             _playbackPositions.value = playbackPositionManager.getAllPositions()
+            triggerScrollToLastPlayed()
         }
     }
 
@@ -114,8 +116,47 @@ class LibraryViewModel @Inject constructor(
     private val _isSearching = MutableStateFlow(false)
     val isSearching = _isSearching.asStateFlow()
 
+    // Scroll State
+    private val _scrollToVideoId = MutableStateFlow<String?>(null)
+    val scrollToVideoId = _scrollToVideoId.asStateFlow()
+
+    /**
+     * Save the last played video if the feature is enabled
+     */
+    fun saveLastPlayed(video: VideoItem) {
+        viewModelScope.launch {
+            if (settings.value.autoScrollToLastPlayed) {
+                // Use stored folderPath
+                playbackPositionManager.saveLastPlayedVideo(video.folderPath, video.id.toString())
+            }
+        }
+    }
+
+    /**
+     * Trigger scroll to last played video in current folder
+     */
+    private fun triggerScrollToLastPlayed() {
+         viewModelScope.launch {
+             if (settings.value.autoScrollToLastPlayed) {
+                  val currentFolder = _selectedFolder.value
+                  if (currentFolder != null) {
+                      val lastVideoId = playbackPositionManager.getLastPlayedVideo(currentFolder.path)
+                      if (lastVideoId != null) {
+                           _scrollToVideoId.value = lastVideoId
+                      }
+                  }
+             }
+         }
+    }
+
     // Refresh trigger
     private val _refreshTrigger = MutableStateFlow(0)
+
+
+    fun onScrollConsumed() {
+        _scrollToVideoId.value = null
+    }
+
 
     fun refresh() {
         _refreshTrigger.value += 1
@@ -198,10 +239,17 @@ class LibraryViewModel @Inject constructor(
             exitSearchMode()
         }
         _selectedFolder.value = folder
+        viewModelScope.launch {
+            // Slight delay to ensure list is composed/updated? Or just trigger state update
+            // Ideally we wait for videos to load, but the UI collects the state.
+            // Since retrieval is async, it might happen after videos load or before.
+            triggerScrollToLastPlayed()
+        }
     }
 
     fun clearSelectedFolder() {
         _selectedFolder.value = null
+        _scrollToVideoId.value = null
     }
 
     fun onBackPressed(): Boolean {

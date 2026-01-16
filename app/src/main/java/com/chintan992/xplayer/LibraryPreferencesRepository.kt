@@ -21,6 +21,7 @@ class LibraryPreferencesRepository @Inject constructor(
         val SORT_BY = stringPreferencesKey("sort_by")
         val SORT_ORDER = stringPreferencesKey("sort_order")
         val SHOW_HIDDEN_FOLDERS = booleanPreferencesKey("show_hidden_folders")
+        val AUTO_SCROLL_TO_LAST_PLAYED = booleanPreferencesKey("auto_scroll_to_last_played")
         
         // Field Visibility
         val FIELD_THUMBNAIL = booleanPreferencesKey("field_thumbnail")
@@ -70,6 +71,12 @@ class LibraryPreferencesRepository @Inject constructor(
         }
     }
 
+    suspend fun updateAutoScrollToLastPlayed(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AUTO_SCROLL_TO_LAST_PLAYED] = enabled
+        }
+    }
+
     suspend fun updateFieldVisibility(
         thumbnail: Boolean? = null,
         duration: Boolean? = null,
@@ -99,6 +106,7 @@ class LibraryPreferencesRepository @Inject constructor(
             preferences[PreferencesKeys.SORT_ORDER] ?: SortOrder.ASCENDING.name
         )
         val showHiddenFolders = preferences[PreferencesKeys.SHOW_HIDDEN_FOLDERS] ?: false
+        val autoScrollToLastPlayed = preferences[PreferencesKeys.AUTO_SCROLL_TO_LAST_PLAYED] ?: false
 
         val fieldVisibility = FieldVisibility(
             thumbnail = preferences[PreferencesKeys.FIELD_THUMBNAIL] ?: true,
@@ -114,7 +122,8 @@ class LibraryPreferencesRepository @Inject constructor(
             sortBy = sortBy,
             sortOrder = sortOrder,
             fieldVisibility = fieldVisibility,
-            showHiddenFolders = showHiddenFolders
+            showHiddenFolders = showHiddenFolders,
+            autoScrollToLastPlayed = autoScrollToLastPlayed
         )
     }
     

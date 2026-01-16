@@ -65,6 +65,42 @@ import com.chintan992.xplayer.FieldVisibility
 import com.chintan992.xplayer.ui.theme.BrandAccent
 import com.chintan992.xplayer.ui.theme.Dimens
 
+@Composable
+fun AutoScrollHandler(
+    listState: androidx.compose.foundation.lazy.LazyListState,
+    items: List<VideoItem>,
+    targetId: String?,
+    onScrollConsumed: () -> Unit
+) {
+    androidx.compose.runtime.LaunchedEffect(targetId, items) {
+        if (targetId != null && items.isNotEmpty()) {
+            val index = items.indexOfFirst { it.id.toString() == targetId }
+            if (index != -1) {
+                listState.scrollToItem(index)
+                onScrollConsumed()
+            }
+        }
+    }
+}
+
+@Composable
+fun AutoScrollHandler(
+    gridState: androidx.compose.foundation.lazy.grid.LazyGridState,
+    items: List<VideoItem>,
+    targetId: String?,
+    onScrollConsumed: () -> Unit
+) {
+    androidx.compose.runtime.LaunchedEffect(targetId, items) {
+        if (targetId != null && items.isNotEmpty()) {
+            val index = items.indexOfFirst { it.id.toString() == targetId }
+            if (index != -1) {
+                gridState.scrollToItem(index)
+                onScrollConsumed()
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun VideoGrid(
@@ -75,12 +111,20 @@ fun VideoGrid(
     selectedVideoIds: Set<Long>,
     fieldVisibility: FieldVisibility,
     playbackPositions: Map<String, Pair<Long, Long>>,
+    scrollToVideoId: String? = null,
+    onScrollConsumed: () -> Unit = {},
     animatedVisibilityScope: AnimatedVisibilityScope,
     sharedTransitionScope: SharedTransitionScope,
     modifier: Modifier = Modifier,
     contentPadding: androidx.compose.foundation.layout.PaddingValues = androidx.compose.foundation.layout.PaddingValues(0.dp)
 ) {
+    val gridState = androidx.compose.foundation.lazy.grid.rememberLazyGridState()
+    
+    // Auto-scroll effect
+    AutoScrollHandler(gridState, videos, scrollToVideoId, onScrollConsumed)
+
     LazyVerticalGrid(
+        state = gridState,
         columns = GridCells.Fixed(2),
         modifier = modifier,
         contentPadding = androidx.compose.foundation.layout.PaddingValues(
@@ -124,12 +168,20 @@ fun VideoList(
     selectedVideoIds: Set<Long>,
     fieldVisibility: FieldVisibility,
     playbackPositions: Map<String, Pair<Long, Long>>,
+    scrollToVideoId: String? = null,
+    onScrollConsumed: () -> Unit = {},
     animatedVisibilityScope: AnimatedVisibilityScope,
     sharedTransitionScope: SharedTransitionScope,
     modifier: Modifier = Modifier,
     contentPadding: androidx.compose.foundation.layout.PaddingValues = androidx.compose.foundation.layout.PaddingValues(0.dp)
 ) {
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+
+    // Auto-scroll effect
+    AutoScrollHandler(listState, videos, scrollToVideoId, onScrollConsumed)
+
     LazyColumn(
+        state = listState,
         modifier = modifier,
         contentPadding = androidx.compose.foundation.layout.PaddingValues(
             start = Dimens.SpacingMedium,
