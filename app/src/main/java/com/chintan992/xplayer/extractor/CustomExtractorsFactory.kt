@@ -2,8 +2,9 @@ package com.chintan992.xplayer.extractor
 
 import androidx.media3.extractor.ExtractorsFactory
 import androidx.media3.extractor.Extractor
-import com.chintan992.xplayer.extractor.mkv.RobustMatroskaExtractor
+import androidx.media3.extractor.mkv.MatroskaExtractor
 import androidx.media3.extractor.mp4.Mp4Extractor
+import androidx.media3.extractor.mp4.FragmentedMp4Extractor
 import androidx.media3.extractor.ts.TsExtractor
 import androidx.media3.extractor.flv.FlvExtractor
 import androidx.media3.extractor.mp3.Mp3Extractor
@@ -14,14 +15,13 @@ import androidx.media3.extractor.ts.PsExtractor
 import androidx.media3.extractor.ts.AdtsExtractor
 import androidx.media3.extractor.ts.Ac3Extractor
 import androidx.media3.extractor.ts.Ac4Extractor
-import androidx.media3.extractor.mp4.FragmentedMp4Extractor
 
 class CustomExtractorsFactory : ExtractorsFactory {
     override fun createExtractors(): Array<Extractor> {
         val extractors = mutableListOf<Extractor>()
         
-        // Priority: RobustMatroskaExtractor
-        extractors.add(RobustMatroskaExtractor(androidx.media3.extractor.text.DefaultSubtitleParserFactory()))
+        // Priority: Standard MatroskaExtractor
+        extractors.add(MatroskaExtractor(androidx.media3.extractor.text.DefaultSubtitleParserFactory()))
         
         // Add other default extractors
         extractors.add(Mp4Extractor(androidx.media3.extractor.text.DefaultSubtitleParserFactory()))
