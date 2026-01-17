@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.runtime.*
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -28,7 +29,9 @@ fun SeekBar(
     currentPosition: Long,
     duration: Long,
     bufferedPosition: Long,
-    onSeek: (Long) -> Unit
+    onSeek: (Long) -> Unit,
+    onSeekStarted: (Long) -> Unit = {},
+    onSeekFinished: () -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -47,10 +50,21 @@ fun SeekBar(
             )
         }
 
+        var isDragging by remember { mutableStateOf(false) }
+        
         Slider(
             value = if (duration > 0) currentPosition.toFloat() / duration else 0f,
             onValueChange = { fraction ->
-                onSeek((fraction * duration).toLong())
+                val newPos = (fraction * duration).toLong()
+                if (!isDragging) {
+                    isDragging = true
+                    onSeekStarted(newPos)
+                }
+                onSeek(newPos)
+            },
+            onValueChangeFinished = {
+                isDragging = false
+                onSeekFinished()
             },
             modifier = Modifier.fillMaxWidth(),
             thumb = {

@@ -112,6 +112,8 @@ class PlayerViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     duration = player.getDuration()
                 )
+                // Short videos use exact seeking for smoothness
+                player.setSeekParameters(player.getDuration() < 60_000)
                 updateTrackInfo()
             }
             
@@ -123,6 +125,7 @@ class PlayerViewModel @Inject constructor(
 
         override fun onDurationChanged(duration: Long) {
              _uiState.value = _uiState.value.copy(duration = duration)
+             player.setSeekParameters(duration < 60_000)
         }
 
         override fun onPositionDiscontinuity(currentPosition: Long) {
@@ -473,10 +476,12 @@ class PlayerViewModel @Inject constructor(
         positionUpdateJob?.cancel()
         positionUpdateJob = viewModelScope.launch {
             while (isActive) {
-                _uiState.value = _uiState.value.copy(
-                    currentPosition = player.getCurrentPosition(),
-                    bufferedPosition = player.getBufferedPosition()
-                )
+                if (!_uiState.value.isSeeking) {
+                    _uiState.value = _uiState.value.copy(
+                        currentPosition = player.getCurrentPosition(),
+                        bufferedPosition = player.getBufferedPosition()
+                    )
+                }
                 delay(500)
             }
         }
@@ -525,7 +530,8 @@ class PlayerViewModel @Inject constructor(
     fun startSeeking(position: Long) {
         _uiState.value = _uiState.value.copy(
             isSeeking = true,
-            seekPosition = position
+            seekPosition = position,
+            currentPosition = position
         )
         // Seek immediately for real-time preview
         player.seekTo(position)
@@ -533,7 +539,10 @@ class PlayerViewModel @Inject constructor(
 
     fun updateSeekPosition(position: Long) {
         val clampedPosition = position.coerceIn(0L, _uiState.value.duration)
-        _uiState.value = _uiState.value.copy(seekPosition = clampedPosition)
+        _uiState.value = _uiState.value.copy(
+            seekPosition = clampedPosition,
+            currentPosition = clampedPosition
+        )
         // Real-time seeking for frame preview
         player.seekTo(clampedPosition)
     }

@@ -525,7 +525,19 @@ fun VideoPlayerScreen(
                                             
                                             when (dragMode) {
                                                 DragMode.SEEK -> {
-                                                    val seekDelta = (delta.x * 200).toLong()
+                                                    val duration = uiState.duration
+                                                    val width = size.width
+                                                    
+                                                    // Dynamic seek window based on video length
+                                                    val seekWindowMs = if (duration > 0 && duration < 60_000) {
+                                                        duration.toFloat() // Short video: full swipe = full duration
+                                                    } else {
+                                                        60_000f // Long video: full swipe = 60 seconds
+                                                    }
+                                                    
+                                                    val seekPerPixel = seekWindowMs / width
+                                                    val seekDelta = (delta.x * seekPerPixel).toLong()
+                                                    
                                                     viewModel.updateSeekPosition(uiState.seekPosition + seekDelta)
                                                 }
                                                 DragMode.BRIGHTNESS -> {
@@ -646,7 +658,11 @@ fun VideoPlayerScreen(
                 LockedOverlay(onUnlock = { viewModel.toggleLock() })
             } else {
                 val onPlayPause = remember(viewModel) { { viewModel.togglePlayPause() } }
-                val onSeek = remember(viewModel) { { pos: Long -> viewModel.seekTo(pos) } }
+                // Use updateSeekPosition for live seek visualization
+                val onSeek = remember(viewModel) { { pos: Long -> viewModel.updateSeekPosition(pos) } }
+                val onSeekStarted = remember(viewModel) { { pos: Long -> viewModel.startSeeking(pos) } }
+                val onSeekFinished = remember(viewModel) { { viewModel.endSeeking() } }
+                
                 val onSeekForward = remember(viewModel) { { viewModel.seekForward() } }
                 val onSeekBackward = remember(viewModel) { { viewModel.seekBackward() } }
                 val onNext = remember(viewModel) { { viewModel.seekToNext() } }
@@ -664,6 +680,8 @@ fun VideoPlayerScreen(
                     onBackPressed = onBackPressed,
                     onPlayPause = onPlayPause,
                     onSeek = onSeek,
+                    onSeekStarted = onSeekStarted,
+                    onSeekFinished = onSeekFinished,
                     onSeekForward = onSeekForward,
                     onSeekBackward = onSeekBackward,
                     onNext = onNext,

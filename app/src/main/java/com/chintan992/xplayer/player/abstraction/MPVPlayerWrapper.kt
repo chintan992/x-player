@@ -145,6 +145,10 @@ class MPVPlayerWrapper @Inject constructor(
         MPVLib.setPropertyString("hwdec", hwdec)
     }
 
+    override fun setSeekParameters(exact: Boolean) {
+        MPVLib.setPropertyString("hr-seek", if (exact) "yes" else "no")
+    }
+
     override fun getDuration(): Long {
         val duration = MPVLib.getPropertyDouble("duration") ?: 0.0
         return (duration * 1000).toLong()

@@ -13,6 +13,7 @@ interface UniversalPlayer {
     fun setPlaybackSpeed(speed: Float)
     fun setVolume(volume: Float)
     fun setDecoderMode(mode: DecoderMode)
+    fun setSeekParameters(exact: Boolean)
     
     fun getDuration(): Long
     fun getCurrentPosition(): Long

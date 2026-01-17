@@ -141,6 +141,10 @@ class ExoPlayerWrapper @Inject constructor(
         exoPlayer.trackSelectionParameters = params.build()
     }
 
+    override fun setSeekParameters(exact: Boolean) {
+        exoPlayer.setSeekParameters(if (exact) androidx.media3.exoplayer.SeekParameters.EXACT else androidx.media3.exoplayer.SeekParameters.CLOSEST_SYNC)
+    }
+
     override fun getDuration(): Long = exoPlayer.duration.coerceAtLeast(0L)
 
     override fun getCurrentPosition(): Long = exoPlayer.currentPosition.coerceAtLeast(0L)

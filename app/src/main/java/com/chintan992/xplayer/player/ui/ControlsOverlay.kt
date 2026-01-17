@@ -40,7 +40,9 @@ fun ControlsOverlay(
     onOrientationClick: () -> Unit,
     onPipClick: () -> Unit,
     onWatchCastClick: () -> Unit,
-    onSwitchPlayerClick: () -> Unit
+    onSwitchPlayerClick: () -> Unit,
+    onSeekStarted: (Long) -> Unit = {},
+    onSeekFinished: () -> Unit = {}
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         // Top gradient
@@ -117,7 +119,9 @@ fun ControlsOverlay(
                 currentPosition = uiState.currentPosition,
                 duration = uiState.duration,
                 bufferedPosition = uiState.bufferedPosition,
-                onSeek = onSeek
+                onSeek = onSeek,
+                onSeekStarted = onSeekStarted,
+                onSeekFinished = onSeekFinished
             )
 
             Spacer(modifier = Modifier.height(8.dp))
